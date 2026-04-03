@@ -11,29 +11,71 @@ const INITIALS_COLORS = [
   'bg-surface-container-high text-on-surface-variant',
 ]
 
+const FALLBACK_LEADERS = FALLBACK.map(p => ({
+  id: p.rank, display_name: p.name, total_points: p.points,
+  total_bingos: 0, level: 1, rank: p.rank
+}))
+
 function toInitials(name = '') {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '??'
 }
 
+function relativeTime(iso) {
+  const diff = (Date.now() - new Date(iso)) / 1000
+  if (diff < 60) return 'most'
+  if (diff < 3600) return `${Math.floor(diff / 60)} perce`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} órája`
+  return `${Math.floor(diff / 86400)} napja`
+}
+
 export default function CommunityScreen({ user }) {
   const [leaders, setLeaders] = useState(null) // null = loading
+  const [activity, setActivity] = useState([])
 
   useEffect(() => {
-    supabase.from('leaderboard').select('*').limit(5)
-      .then(({ data }) => setLeaders(data?.length ? data : FALLBACK.map(p => ({
-        id: p.rank, display_name: p.name, total_points: p.points,
-        total_bingos: 0, level: 1, rank: p.rank
-      })))
-      ).catch(() => setLeaders(FALLBACK.map(p => ({
-        id: p.rank, display_name: p.name, total_points: p.points,
-        total_bingos: 0, level: 1, rank: p.rank
-      }))))
+    // 1. Leaderboard: kezdeti betöltés + Realtime
+    const loadLeaders = async () => {
+      const { data } = await supabase.from('leaderboard').select('*').limit(5)
+      if (data?.length) setLeaders(data)
+      else setLeaders(FALLBACK_LEADERS)
+    }
+    loadLeaders()
+
+    const channel = supabase
+      .channel('leaderboard-changes')
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'bingo_sessions' },
+        () => loadLeaders()
+      )
+      .subscribe()
+
+    return () => supabase.removeChannel(channel)
   }, [])
 
-  const LEADERBOARD = leaders ?? FALLBACK.map(p => ({
-    id: p.rank, display_name: p.name, total_points: p.points,
-    total_bingos: 0, level: 1, rank: p.rank
-  }))
+  useEffect(() => {
+    // 3. Aktivitás feed: kezdeti betöltés + Realtime
+    const loadActivity = async () => {
+      const { data } = await supabase
+        .from('bingo_sessions')
+        .select('id, completed_at, points_earned, profiles(display_name, avatar_url)')
+        .order('completed_at', { ascending: false })
+        .limit(5)
+      if (data?.length) setActivity(data)
+    }
+    loadActivity()
+
+    const channel2 = supabase
+      .channel('activity-feed')
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'bingo_sessions' },
+        () => loadActivity()
+      )
+      .subscribe()
+
+    return () => supabase.removeChannel(channel2)
+  }, [])
+
+  const LEADERBOARD = leaders ?? FALLBACK_LEADERS
   const loading = leaders === null
 
   return (
@@ -67,64 +109,123 @@ export default function CommunityScreen({ user }) {
             </div>
           ) : (
             <>
-          {/* #1 hero card */}
-          <div className="bg-surface-container-lowest p-5 rounded-2xl shadow-sm border-l-4 border-secondary flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                {LEADERBOARD[0]?.avatar_url ? (
-                  <img src={LEADERBOARD[0].avatar_url} className="w-14 h-14 rounded-full object-cover" alt="" />
-                ) : (
-                  <div className="w-14 h-14 rounded-full bg-secondary-container flex items-center justify-center font-headline font-black text-lg text-secondary border-2 border-secondary-container">
-                    {toInitials(LEADERBOARD[0]?.display_name)}
-                  </div>
-                )}
-                <div className="absolute -top-1 -right-1 bg-secondary text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold font-headline">1</div>
-              </div>
-              <div>
-                <p className="font-headline font-bold text-on-surface text-base">
-                  {LEADERBOARD[0]?.display_name}
-                  {user && LEADERBOARD[0]?.id === user.id && <span className="text-primary text-xs ml-1">(te)</span>}
-                </p>
-                <p className="font-body text-xs text-on-surface-variant">{LEADERBOARD[0]?.total_points ?? 0} Bingó Pont</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Ranks 2–3 */}
-          <div className="grid grid-cols-2 gap-3">
-            {LEADERBOARD.slice(1, 3).map((p, idx) => (
-              <div key={p.id ?? p.rank} className="bg-surface-container-low p-4 rounded-xl flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-headline font-bold text-sm ${INITIALS_COLORS[idx + 1]}`}>
-                  {idx + 2}
-                </div>
-                <div className="overflow-hidden">
-                  <p className="font-headline font-bold text-sm truncate">{p.display_name}</p>
-                  <p className="font-body text-[10px] text-on-surface-variant">{p.total_points ?? 0} pont</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Ranks 4–5 */}
-          <div className="bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/10">
-            {LEADERBOARD.slice(3).map((p, idx) => (
-              <div key={p.id ?? p.rank}>
-                <div className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-3">
-                    <span className="font-headline font-bold text-on-surface-variant w-5 text-center">{p.rank ?? idx + 4}</span>
-                    <div className="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center font-headline font-bold text-xs text-on-surface-variant">
-                      {toInitials(p.display_name)}
+              {/* #1 hero card */}
+              {(() => {
+                const p = LEADERBOARD[0]
+                const isMe = user && p?.id === user.id
+                return (
+                  <div className={`p-5 rounded-2xl shadow-sm border-l-4 border-secondary flex items-center justify-between ${isMe ? 'bg-primary/5' : 'bg-surface-container-lowest'}`}>
+                    <div className="flex items-center gap-4">
+                      <div className="relative">
+                        {p?.avatar_url ? (
+                          <img src={p.avatar_url} className="w-14 h-14 rounded-full object-cover" alt="" />
+                        ) : (
+                          <div className="w-14 h-14 rounded-full bg-secondary-container flex items-center justify-center font-headline font-black text-lg text-secondary border-2 border-secondary-container">
+                            {toInitials(p?.display_name)}
+                          </div>
+                        )}
+                        <div className="absolute -top-1 -right-1 bg-secondary text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold font-headline">1</div>
+                      </div>
+                      <div>
+                        <p className="font-headline font-bold text-on-surface text-base flex items-center gap-1">
+                          {p?.display_name}
+                          {isMe && <span className="bg-primary text-on-primary text-[9px] font-bold px-1.5 py-0.5 rounded-full ml-1">TE</span>}
+                        </p>
+                        <p className="font-body text-xs text-on-surface-variant">{p?.total_points ?? 0} Bingó Pont</p>
+                      </div>
                     </div>
-                    <p className="font-body font-semibold text-sm">{p.display_name}</p>
                   </div>
-                  <span className="font-headline font-bold text-xs text-on-surface-variant">{p.total_points ?? 0} pt</span>
-                </div>
-                {idx < LEADERBOARD.slice(3).length - 1 && <div className="h-px mx-4 bg-surface-container" />}
+                )
+              })()}
+
+              {/* Ranks 2–3 */}
+              <div className="grid grid-cols-2 gap-3">
+                {LEADERBOARD.slice(1, 3).map((p, idx) => {
+                  const isMe = user && p.id === user.id
+                  return (
+                    <div key={p.id ?? p.rank} className={`p-4 rounded-xl flex items-center gap-3 ${isMe ? 'bg-primary/5 border border-primary/20' : 'bg-surface-container-low'}`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-headline font-bold text-sm ${INITIALS_COLORS[idx + 1]}`}>
+                        {idx + 2}
+                      </div>
+                      <div className="overflow-hidden">
+                        <p className="font-headline font-bold text-sm truncate flex items-center gap-1">
+                          {p.display_name}
+                          {isMe && <span className="bg-primary text-on-primary text-[9px] font-bold px-1.5 py-0.5 rounded-full">TE</span>}
+                        </p>
+                        <p className="font-body text-[10px] text-on-surface-variant">{p.total_points ?? 0} pont</p>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            ))}
-          </div>
+
+              {/* Ranks 4–5 */}
+              <div className="bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/10">
+                {LEADERBOARD.slice(3).map((p, idx) => {
+                  const isMe = user && p.id === user.id
+                  return (
+                    <div key={p.id ?? p.rank} className={isMe ? 'bg-primary/5' : ''}>
+                      <div className="flex items-center justify-between p-4">
+                        <div className="flex items-center gap-3">
+                          <span className="font-headline font-bold text-on-surface-variant w-5 text-center">{p.rank ?? idx + 4}</span>
+                          <div className="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center font-headline font-bold text-xs text-on-surface-variant">
+                            {toInitials(p.display_name)}
+                          </div>
+                          <p className="font-body font-semibold text-sm flex items-center gap-1">
+                            {p.display_name}
+                            {isMe && <span className="bg-primary text-on-primary text-[9px] font-bold px-1.5 py-0.5 rounded-full">TE</span>}
+                          </p>
+                        </div>
+                        <span className="font-headline font-bold text-xs text-on-surface-variant">{p.total_points ?? 0} pt</span>
+                      </div>
+                      {idx < LEADERBOARD.slice(3).length - 1 && <div className="h-px mx-4 bg-surface-container" />}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* 2. Saját pozíció kártya ha nem top 5 */}
+              {user && !leaders?.find(l => l.id === user.id) && (
+                <div className="bg-primary/5 border border-primary/20 p-4 rounded-xl flex items-center gap-3 mt-2">
+                  <span className="material-symbols-outlined text-primary text-sm">person</span>
+                  <div className="flex-1">
+                    <p className="font-headline font-bold text-sm text-primary">A te pozíciód</p>
+                    <p className="font-body text-xs text-on-surface-variant">Bingózz többet a top 5-be kerüléshez!</p>
+                  </div>
+                </div>
+              )}
             </>
           )}
+        </section>
+
+        {/* 3. Aktivitás feed */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+            <h3 className="text-lg font-headline font-bold text-on-surface">Friss aktivitás</h3>
+          </div>
+          <div className="bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant/10">
+            {activity.map(item => (
+              <div key={item.id} className="flex items-center gap-3 py-2 border-b border-outline-variant/10 last:border-0">
+                <div className="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-xs font-bold text-secondary flex-shrink-0">
+                  {toInitials(item.profiles?.display_name)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-body">
+                    <span className="font-bold">{item.profiles?.display_name ?? 'Névtelen'}</span>
+                    <span className="text-on-surface-variant"> bingózott</span>
+                  </p>
+                  <p className="text-xs text-on-surface-variant">{relativeTime(item.completed_at)} • +{item.points_earned} pont</p>
+                </div>
+                <span className="material-symbols-outlined text-secondary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>grid_view</span>
+              </div>
+            ))}
+            {activity.length === 0 && (
+              <p className="text-sm text-on-surface-variant text-center py-4">
+                Még nincs aktivitás – légy az első! 🎯
+              </p>
+            )}
+          </div>
         </section>
 
         {/* Challenges */}
