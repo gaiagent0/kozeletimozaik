@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import TopBar from '../components/TopBar.jsx'
 import { signInWithGoogle, signInAnonymously, signOut } from '../lib/auth.js'
 import { supabase } from '../lib/supabase.js'
+import { getSettings, saveSettings, requestNotifPermission } from '../lib/settings.js'
 
 function Toggle({ checked, onChange }) {
   return (
@@ -30,10 +31,15 @@ function SettingRow({ icon, iconBg, title, subtitle, right }) {
 }
 
 export default function SettingsScreen({ user, loading, onNavigate, onMenuClick, onProfileClick }) {
-  const [notifs, setNotifs] = useState(true)
-  const [haptic, setHaptic] = useState(false)
-  const [sounds, setSounds] = useState(true)
+  const [settings, setSettings] = useState(getSettings())
   const [lang, setLang] = useState('hu')
+
+  const updateSetting = (key, value) => {
+    const next = { ...settings, [key]: value }
+    setSettings(next)
+    saveSettings(next)
+    if (key === 'notifs' && value) requestNotifPermission()
+  }
   const [profile, setProfile] = useState(null)
   const [authBusy, setAuthBusy] = useState(false)
 
@@ -126,7 +132,7 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
               iconBg="bg-secondary-container text-secondary"
               title="Hírértesítések"
               subtitle="Friss közéleti események"
-              right={<Toggle checked={notifs} onChange={() => setNotifs(!notifs)} />}
+              right={<Toggle checked={settings.notifs} onChange={() => updateSetting('notifs', !settings.notifs)} />}
             />
             <div className="h-px mx-4 bg-surface-container" />
             <SettingRow
@@ -134,7 +140,7 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
               iconBg="bg-surface-container-high text-on-surface-variant"
               title="Haptikus visszajelzés"
               subtitle="Rezgés bingó esetén"
-              right={<Toggle checked={haptic} onChange={() => setHaptic(!haptic)} />}
+              right={<Toggle checked={settings.haptic} onChange={() => updateSetting('haptic', !settings.haptic)} />}
             />
             <div className="h-px mx-4 bg-surface-container" />
             <SettingRow
@@ -142,7 +148,7 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
               iconBg="bg-surface-container-high text-on-surface-variant"
               title="Játék hanghatások"
               subtitle="Hangok kattintáskor"
-              right={<Toggle checked={sounds} onChange={() => setSounds(!sounds)} />}
+              right={<Toggle checked={settings.sounds} onChange={() => updateSetting('sounds', !settings.sounds)} />}
             />
           </div>
         </section>

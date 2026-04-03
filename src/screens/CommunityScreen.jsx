@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import TopBar from '../components/TopBar.jsx'
 import { LEADERBOARD as FALLBACK } from '../lib/data.js'
 import { supabase } from '../lib/supabase.js'
+import { useDailyChallenge } from '../hooks/useDailyChallenge.js'
 
 const INITIALS_COLORS = [
   'bg-secondary text-on-secondary',
@@ -31,6 +32,7 @@ function relativeTime(iso) {
 export default function CommunityScreen({ user, onNavigate, onMenuClick, onProfileClick }) {
   const [leaders, setLeaders] = useState(null) // null = loading
   const [activity, setActivity] = useState([])
+  const { challenge, completed } = useDailyChallenge(user)
 
   useEffect(() => {
     // 1. Leaderboard: kezdeti betöltés + Realtime
@@ -251,16 +253,26 @@ export default function CommunityScreen({ user, onNavigate, onMenuClick, onProfi
             <div className="p-5 -mt-8 relative z-10">
               <div className="bg-surface-container-lowest p-4 rounded-xl shadow-sm">
                 <span className="text-[10px] font-headline font-bold text-primary uppercase tracking-widest mb-1 block">Napi küldetés</span>
-                <h4 className="font-headline font-extrabold text-lg text-on-surface mb-1">A Parlament Hangjai</h4>
-                <p className="font-body text-sm text-on-surface-variant mb-4">Tölts ki 3 mezőt a mai parlamenti közvetítés alatt!</p>
+                <h4 className="font-headline font-extrabold text-lg text-on-surface mb-1">
+                  {challenge?.title ?? 'A Parlament Hangjai'}
+                </h4>
+                <p className="font-body text-sm text-on-surface-variant mb-4">
+                  {challenge?.description ?? 'Tölts ki 3 mezőt a mai közvetítés alatt!'}
+                </p>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1 text-xs text-on-surface-variant">
                     <span className="material-symbols-outlined text-sm">people</span>
-                    <span>+120 játékos</span>
+                    <span>+{challenge?.bonus_points ?? 50} pont</span>
                   </div>
-                  <button className="bg-primary text-on-primary text-xs font-headline font-bold py-2 px-5 rounded-lg active:scale-95 transition-transform shadow-sm">
-                    Csatlakozom
-                  </button>
+                  {completed ? (
+                    <span className="bg-secondary-container text-on-secondary-container text-xs font-headline font-bold px-3 py-1.5 rounded-lg">
+                      ✓ Teljesítve +{challenge?.bonus_points ?? 50} pont
+                    </span>
+                  ) : (
+                    <button className="bg-primary text-on-primary text-xs font-headline font-bold py-2 px-5 rounded-lg active:scale-95 transition-transform shadow-sm">
+                      Csatlakozom
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

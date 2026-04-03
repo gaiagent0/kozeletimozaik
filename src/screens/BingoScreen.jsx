@@ -3,6 +3,7 @@ import TopBar from '../components/TopBar.jsx'
 import { BUZZWORDS } from '../lib/data.js'
 import { SIZE, CENTER, makeBoard, checkWin, launchConfetti } from '../lib/bingo.js'
 import { supabase } from '../lib/supabase.js'
+import { playSound, vibrate, getSettings } from '../lib/settings.js'
 
 function HungarianFlag({ size = 28 }) {
   return (
@@ -61,12 +62,17 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
 
   const toggleCell = (i) => {
     if (i === CENTER) return
+    const s = getSettings()
+    if (s.sounds) playSound('tap')
+    if (s.haptic) vibrate([30])
     const next = new Set(selected)
     next.has(i) ? next.delete(i) : next.add(i)
     const wins = checkWin(next)
     const bingo = wins.size > 0
     if (bingo && !isBingo) {
       launchConfetti()
+      if (s.sounds) playSound('bingo')
+      if (s.haptic) vibrate([100, 50, 100, 50, 200])
       setTotalBingos(n => n + 1)
       saveBingoSession(next, board)
     }
@@ -75,13 +81,34 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
     setIsBingo(bingo)
   }
 
+  const copyToClipboard = (text) => {
+    navigator.clipboard?.writeText(text)
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500) })
+      .catch(() => {
+        const ta = document.createElement('textarea')
+        ta.value = text; document.body.appendChild(ta); ta.select()
+        try { document.execCommand('copy'); setCopied(true); setTimeout(() => setCopied(false), 2500) } catch {}
+        document.body.removeChild(ta)
+      })
+  }
+
   const handleShare = () => {
     const count = selected.size - 1
-    const url = 'https://valasztasibingo.hu'
+    const url = import.meta.env.VITE_APP_URL || 'https://valasztasibingo.hu'
+    const words = Array.from(selected)
+      .filter(i => i !== CENTER)
+      .map(i => board[i])
+      .slice(0, 5)
+    const encoded = encodeURIComponent(words.join(','))
+    const shareUrl = `${url}?words=${encoded}&score=${count}`
     const text = isBingo
-      ? `🇭🇺 BINGÓ! ${count} megjelölt mező, kijött a sor! Próbáld ki: ${url} #valasztas2026`
-      : `🗳️ ${count}/24 mezőnél tartok a Választási Bingón – Közéleti Mozaik. Próbáld ki: ${url} #valasztas2026`
-    navigator.clipboard?.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500) })
+      ? `🇭🇺 BINGÓ! ${count} mezőm volt – "${words[0]}" és még ${count - 1} más! Próbáld ki: ${shareUrl} #valasztas2026`
+      : `🗳️ ${count}/24 mezőnél tartok a Választási Bingón – Közéleti Mozaik. Próbáld ki: ${shareUrl} #valasztas2026`
+    if (navigator.share) {
+      navigator.share({ title: 'Választási Bingó 2026', text, url: shareUrl }).catch(() => copyToClipboard(text))
+    } else {
+      copyToClipboard(text)
+    }
   }
 
   if (phase === 'welcome') {

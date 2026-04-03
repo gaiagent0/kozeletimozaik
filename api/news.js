@@ -47,7 +47,24 @@ export default async function handler(req) {
 
   results.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
 
-  return new Response(JSON.stringify(results.slice(0, 12)), {
+  const POLITICAL_KEYWORDS = [
+    'választás', 'választási', 'kampány', 'párt', 'kormány', 'ellenzék',
+    'miniszter', 'parlament', 'politika', 'politikai', 'fidesz', 'tisza',
+    'magyar péter', 'orbán', 'szavazás', 'szavazat', 'képviselő',
+    'törvény', 'alaptörvény', 'eu', 'brüsszel', 'korrupció',
+    'önkormányzat', 'polgármester', 'főpolgármester', 'ellenzéki',
+    'koalíció', 'frakció', 'budget', 'költségvetés', 'adó', 'rezsi'
+  ]
+
+  const isPolitical = (title = '', description = '') => {
+    const text = (title + ' ' + description).toLowerCase()
+    return POLITICAL_KEYWORDS.some(kw => text.includes(kw))
+  }
+
+  const political = results.filter(r => isPolitical(r.title, r.description))
+  const finalResults = political.length >= 4 ? political : results
+
+  return new Response(JSON.stringify(finalResults.slice(0, 12)), {
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 's-maxage=900, stale-while-revalidate=1800',
