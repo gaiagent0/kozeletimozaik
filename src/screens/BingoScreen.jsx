@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import TopBar from '../components/TopBar.jsx'
 import { BUZZWORDS } from '../lib/data.js'
 import { SIZE, CENTER, makeBoard, checkWin, launchConfetti } from '../lib/bingo.js'
@@ -16,6 +16,27 @@ function HungarianFlag({ size = 28 }) {
   )
 }
 
+const ELECTION_TARGET = new Date('2026-04-12T19:00:00+02:00').getTime()
+
+function useCountdown() {
+  const [remaining, setRemaining] = useState(() => Math.max(0, ELECTION_TARGET - Date.now()))
+  useEffect(() => {
+    if (remaining === 0) return
+    const id = setInterval(() => {
+      const r = Math.max(0, ELECTION_TARGET - Date.now())
+      setRemaining(r)
+      if (r === 0) clearInterval(id)
+    }, 1000)
+    return () => clearInterval(id)
+  }, [])
+  const days = Math.floor(remaining / 86400000)
+  const hours = Math.floor((remaining % 86400000) / 3600000)
+  const mins = Math.floor((remaining % 3600000) / 60000)
+  const secs = Math.floor((remaining % 60000) / 1000)
+  const pad = n => String(n).padStart(2, '0')
+  return { days, time: `${pad(hours)}:${pad(mins)}:${pad(secs)}`, done: remaining === 0 }
+}
+
 export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileClick }) {
   const [phase, setPhase] = useState('welcome')
   const [board, setBoard] = useState([])
@@ -25,6 +46,7 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
   const [copied, setCopied] = useState(false)
   const [totalBingos, setTotalBingos] = useState(0)
   const savedRef = useRef(false)
+  const countdown = useCountdown()
 
   const saveBingoSession = async (sel, currentBoard) => {
     if (!user || savedRef.current) return
@@ -160,6 +182,24 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
               <div className="absolute top-4 right-4 bg-secondary-container text-on-secondary-container text-xs font-bold px-3 py-1 rounded-full font-headline">
                 {totalBingos} bingó ✓
               </div>
+            )}
+          </div>
+
+          {/* Election countdown */}
+          <div className="bg-surface-container-lowest rounded-3xl p-5 border border-outline-variant/20 text-center shadow-sm">
+            <p className="text-[10px] font-headline font-extrabold uppercase tracking-[0.2em] text-on-surface-variant mb-3">
+              {countdown.done ? 'A szavazás lezárult' : 'Visszaszámláló – Választás 2026. április 12.'}
+            </p>
+            {countdown.done ? (
+              <p className="font-headline font-black text-4xl text-primary">Az urnák zárva</p>
+            ) : (
+              <>
+                <div className="flex items-end justify-center gap-1 mb-1">
+                  <span className="font-headline font-black text-7xl leading-none text-on-surface tabular-nums">{countdown.days}</span>
+                  <span className="font-headline font-bold text-lg text-on-surface-variant mb-2">nap</span>
+                </div>
+                <p className="font-headline font-bold text-2xl text-on-surface-variant tabular-nums tracking-widest">{countdown.time}</p>
+              </>
             )}
           </div>
 

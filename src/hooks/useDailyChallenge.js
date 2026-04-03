@@ -6,11 +6,12 @@ export function useDailyChallenge(user) {
   const [completed, setCompleted] = useState(false)
 
   useEffect(() => {
+    const today = new Date().toLocaleDateString('sv-SE')
     supabase.from('daily_challenges')
       .select('*')
-      .eq('date', new Date().toISOString().split('T')[0])
+      .eq('date', today)
       .eq('active', true)
-      .single()
+      .maybeSingle()
       .then(({ data }) => { if (data) setChallenge(data) })
   }, [])
 

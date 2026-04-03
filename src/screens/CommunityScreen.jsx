@@ -30,12 +30,18 @@ function relativeTime(iso) {
 }
 
 export default function CommunityScreen({ user, onNavigate, onMenuClick, onProfileClick }) {
-  const [leaders, setLeaders] = useState(null) // null = loading
+  const [leaders, setLeaders] = useState(null)
   const [activity, setActivity] = useState([])
+  const [toast, setToast] = useState(null)
+  const [dailyChamp, setDailyChamp] = useState(null)
   const { challenge, completed } = useDailyChallenge(user)
 
+  const showToast = (msg) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 2500)
+  }
+
   useEffect(() => {
-    // 1. Leaderboard: kezdeti betöltés + Realtime
     const loadLeaders = async () => {
       const { data } = await supabase.from('leaderboard').select('*').limit(5)
       if (data?.length) setLeaders(data)
@@ -55,14 +61,22 @@ export default function CommunityScreen({ user, onNavigate, onMenuClick, onProfi
   }, [])
 
   useEffect(() => {
-    // 3. Aktivitás feed: kezdeti betöltés + Realtime
     const loadActivity = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('bingo_sessions')
         .select('id, completed_at, points_earned, profiles(display_name, avatar_url)')
         .order('completed_at', { ascending: false })
         .limit(5)
-      if (data?.length) setActivity(data)
+      if (data?.length) {
+        setActivity(data)
+      } else {
+        const { data: plain } = await supabase
+          .from('bingo_sessions')
+          .select('id, completed_at, points_earned')
+          .order('completed_at', { ascending: false })
+          .limit(5)
+        setActivity((plain ?? []).map(d => ({ ...d, profiles: { display_name: 'Játékos' } })))
+      }
     }
     loadActivity()
 
@@ -75,6 +89,19 @@ export default function CommunityScreen({ user, onNavigate, onMenuClick, onProfi
       .subscribe()
 
     return () => supabase.removeChannel(channel2)
+  }, [])
+
+  useEffect(() => {
+    const today = new Date().toLocaleDateString('sv-SE')
+    supabase
+      .from('bingo_sessions')
+      .select('user_id, points_earned, profiles(display_name, avatar_url)')
+      .gte('completed_at', today + 'T00:00:00')
+      .order('points_earned', { ascending: false })
+      .limit(1)
+      .then(({ data }) => {
+        if (data?.[0]) setDailyChamp(data[0])
+      })
   }, [])
 
   const LEADERBOARD = leaders ?? FALLBACK_LEADERS
@@ -186,7 +213,7 @@ export default function CommunityScreen({ user, onNavigate, onMenuClick, onProfi
                 })}
               </div>
 
-              {/* 2. Saját pozíció kártya ha nem top 5 */}
+              {/* Saját pozíció kártya ha nem top 5 */}
               {user && !leaders?.find(l => l.id === user.id) && (
                 <div className="bg-primary/5 border border-primary/20 p-4 rounded-xl flex items-center gap-3 mt-2">
                   <span className="material-symbols-outlined text-primary text-sm">person</span>
@@ -200,7 +227,7 @@ export default function CommunityScreen({ user, onNavigate, onMenuClick, onProfi
           )}
         </section>
 
-        {/* 3. Aktivitás feed */}
+        {/* Aktivitás feed */}
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
@@ -237,10 +264,15 @@ export default function CommunityScreen({ user, onNavigate, onMenuClick, onProfi
               <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
               <h3 className="text-lg font-headline font-bold text-on-surface">Legújabb Kihívások</h3>
             </div>
-            <button className="text-primary font-headline text-xs font-bold uppercase tracking-widest">Összes</button>
+            <button
+              onClick={() => showToast('Hamarosan több kihívás! 🚀')}
+              className="text-primary font-headline text-xs font-bold uppercase tracking-widest active:opacity-60 transition-opacity"
+            >
+              Összes
+            </button>
           </div>
 
-          {/* Challenge 1 */}
+          {/* Napi küldetés */}
           <div className="bg-surface-container-low rounded-2xl overflow-hidden">
             <div className="h-28 w-full relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/80 to-primary-container" />
@@ -269,7 +301,10 @@ export default function CommunityScreen({ user, onNavigate, onMenuClick, onProfi
                       ✓ Teljesítve +{challenge?.bonus_points ?? 50} pont
                     </span>
                   ) : (
-                    <button className="bg-primary text-on-primary text-xs font-headline font-bold py-2 px-5 rounded-lg active:scale-95 transition-transform shadow-sm">
+                    <button
+                      onClick={() => onNavigate('bingo')}
+                      className="bg-primary text-on-primary text-xs font-headline font-bold py-2 px-5 rounded-lg active:scale-95 transition-transform shadow-sm"
+                    >
                       Csatlakozom
                     </button>
                   )}
@@ -278,7 +313,7 @@ export default function CommunityScreen({ user, onNavigate, onMenuClick, onProfi
             </div>
           </div>
 
-          {/* Challenge 2 */}
+          {/* Közös Bingó Est */}
           <div className="bg-surface-container-low p-5 rounded-2xl flex items-center gap-4">
             <div className="bg-secondary-container p-3.5 rounded-xl flex-shrink-0">
               <span className="material-symbols-outlined text-secondary text-2xl">groups</span>
@@ -287,25 +322,47 @@ export default function CommunityScreen({ user, onNavigate, onMenuClick, onProfi
               <h4 className="font-headline font-bold text-on-surface text-sm">Közös Bingó Est</h4>
               <p className="font-body text-xs text-on-surface-variant mt-0.5">Ma 20:00 • Élő közvetítés</p>
             </div>
-            <button className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-outline-variant text-primary active:scale-90 transition-transform flex-shrink-0">
+            <button
+              onClick={() => showToast('Értesítés beállítva! 🔔')}
+              className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-outline-variant text-primary active:scale-90 transition-transform flex-shrink-0"
+            >
               <span className="material-symbols-outlined text-xl">notifications</span>
             </button>
           </div>
 
-          {/* Challenge 3 */}
+          {/* Napi Bajnok */}
           <div className="bg-surface-container-low p-5 rounded-2xl flex items-center gap-4">
             <div className="bg-primary-fixed p-3.5 rounded-xl flex-shrink-0">
               <span className="material-symbols-outlined text-primary text-2xl">emoji_events</span>
             </div>
             <div className="flex-1">
-              <h4 className="font-headline font-bold text-on-surface text-sm">Heti Bajnok</h4>
-              <p className="font-body text-xs text-on-surface-variant mt-0.5">Legtöbb bingó a héten • Zárul: 3 nap</p>
+              <h4 className="font-headline font-bold text-on-surface text-sm">Napi Bajnok</h4>
+              {dailyChamp ? (
+                <p className="font-body text-xs text-on-surface-variant mt-0.5">
+                  {dailyChamp.profiles?.display_name ?? 'Játékos'} • +{dailyChamp.points_earned} pont ma
+                </p>
+              ) : (
+                <p className="font-body text-xs text-on-surface-variant mt-0.5">Ma még nincs bajnok – légy az első!</p>
+              )}
             </div>
-            <span className="bg-secondary-container text-on-secondary-container text-[10px] font-headline font-bold px-2 py-1 rounded-full">ÚJ</span>
+            {dailyChamp ? (
+              <div className="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center font-headline font-bold text-sm text-secondary flex-shrink-0">
+                {toInitials(dailyChamp.profiles?.display_name)}
+              </div>
+            ) : (
+              <span className="material-symbols-outlined text-secondary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>emoji_events</span>
+            )}
           </div>
         </section>
 
       </main>
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface text-sm font-headline font-bold px-5 py-3 rounded-2xl shadow-lg animate-fade-in whitespace-nowrap">
+          {toast}
+        </div>
+      )}
     </div>
   )
 }
