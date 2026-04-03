@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import TopBar from '../components/TopBar.jsx'
 import { BUZZWORDS } from '../lib/data.js'
 import { SIZE, CENTER, makeBoard, checkWin, launchConfetti } from '../lib/bingo.js'
+import { supabase } from '../lib/supabase.js'
 
 function HungarianFlag({ size = 28 }) {
   return (
@@ -14,7 +15,7 @@ function HungarianFlag({ size = 28 }) {
   )
 }
 
-export default function BingoScreen() {
+export default function BingoScreen({ user }) {
   const [phase, setPhase] = useState('welcome')
   const [board, setBoard] = useState([])
   const [selected, setSelected] = useState(new Set([CENTER]))
@@ -22,6 +23,23 @@ export default function BingoScreen() {
   const [isBingo, setIsBingo] = useState(false)
   const [copied, setCopied] = useState(false)
   const [totalBingos, setTotalBingos] = useState(0)
+  const savedRef = useRef(false)
+
+  const saveBingoSession = async (sel, currentBoard) => {
+    if (!user || savedRef.current) return
+    savedRef.current = true
+    const count = sel.size - 1
+    try {
+      await supabase.from('bingo_sessions').insert({
+        user_id: user.id,
+        points_earned: count * 10,
+        words_matched: Array.from(sel).filter(i => i !== CENTER).map(i => currentBoard[i])
+      })
+      await supabase.rpc('increment_profile_stats', { p_user_id: user.id, p_points: count * 10 })
+    } catch (err) {
+      console.error('Failed to save bingo session:', err)
+    }
+  }
 
   const startGame = useCallback(() => {
     const b = makeBoard(BUZZWORDS)
@@ -29,6 +47,7 @@ export default function BingoScreen() {
     setSelected(new Set([CENTER]))
     setWinCells(new Set())
     setIsBingo(false)
+    savedRef.current = false
     setPhase('game')
   }, [])
 
@@ -49,6 +68,7 @@ export default function BingoScreen() {
     if (bingo && !isBingo) {
       launchConfetti()
       setTotalBingos(n => n + 1)
+      saveBingoSession(next, board)
     }
     setSelected(next)
     setWinCells(wins)

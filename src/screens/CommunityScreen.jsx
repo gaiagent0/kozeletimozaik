@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react'
 import TopBar from '../components/TopBar.jsx'
-import { LEADERBOARD } from '../lib/data.js'
+import { LEADERBOARD as FALLBACK } from '../lib/data.js'
+import { supabase } from '../lib/supabase.js'
 
 const INITIALS_COLORS = [
   'bg-secondary text-on-secondary',
@@ -9,7 +11,31 @@ const INITIALS_COLORS = [
   'bg-surface-container-high text-on-surface-variant',
 ]
 
-export default function CommunityScreen() {
+function toInitials(name = '') {
+  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '??'
+}
+
+export default function CommunityScreen({ user }) {
+  const [leaders, setLeaders] = useState(null) // null = loading
+
+  useEffect(() => {
+    supabase.from('leaderboard').select('*').limit(5)
+      .then(({ data }) => setLeaders(data?.length ? data : FALLBACK.map(p => ({
+        id: p.rank, display_name: p.name, total_points: p.points,
+        total_bingos: 0, level: 1, rank: p.rank
+      })))
+      ).catch(() => setLeaders(FALLBACK.map(p => ({
+        id: p.rank, display_name: p.name, total_points: p.points,
+        total_bingos: 0, level: 1, rank: p.rank
+      }))))
+  }, [])
+
+  const LEADERBOARD = leaders ?? FALLBACK.map(p => ({
+    id: p.rank, display_name: p.name, total_points: p.points,
+    total_bingos: 0, level: 1, rank: p.rank
+  }))
+  const loading = leaders === null
+
   return (
     <div className="flex flex-col min-h-screen bg-background tapestry-bg">
       <TopBar title="Közéleti Mozaik" />
@@ -33,35 +59,47 @@ export default function CommunityScreen() {
             <h3 className="text-lg font-headline font-bold text-on-surface">Top Játékosok</h3>
           </div>
 
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-20 bg-surface-container-high rounded-2xl animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <>
           {/* #1 hero card */}
           <div className="bg-surface-container-lowest p-5 rounded-2xl shadow-sm border-l-4 border-secondary flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="w-14 h-14 rounded-full bg-secondary-container flex items-center justify-center font-headline font-black text-lg text-secondary border-2 border-secondary-container">
-                  {LEADERBOARD[0].initials}
-                </div>
+                {LEADERBOARD[0]?.avatar_url ? (
+                  <img src={LEADERBOARD[0].avatar_url} className="w-14 h-14 rounded-full object-cover" alt="" />
+                ) : (
+                  <div className="w-14 h-14 rounded-full bg-secondary-container flex items-center justify-center font-headline font-black text-lg text-secondary border-2 border-secondary-container">
+                    {toInitials(LEADERBOARD[0]?.display_name)}
+                  </div>
+                )}
                 <div className="absolute -top-1 -right-1 bg-secondary text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold font-headline">1</div>
               </div>
               <div>
-                <p className="font-headline font-bold text-on-surface text-base">{LEADERBOARD[0].name}</p>
-                <p className="font-body text-xs text-on-surface-variant">{LEADERBOARD[0].points} Bingó Pont</p>
+                <p className="font-headline font-bold text-on-surface text-base">
+                  {LEADERBOARD[0]?.display_name}
+                  {user && LEADERBOARD[0]?.id === user.id && <span className="text-primary text-xs ml-1">(te)</span>}
+                </p>
+                <p className="font-body text-xs text-on-surface-variant">{LEADERBOARD[0]?.total_points ?? 0} Bingó Pont</p>
               </div>
-            </div>
-            <div className="text-right">
-              <span className="text-secondary font-headline font-bold text-sm">{LEADERBOARD[0].today} ma</span>
             </div>
           </div>
 
           {/* Ranks 2–3 */}
           <div className="grid grid-cols-2 gap-3">
             {LEADERBOARD.slice(1, 3).map((p, idx) => (
-              <div key={p.rank} className="bg-surface-container-low p-4 rounded-xl flex items-center gap-3">
+              <div key={p.id ?? p.rank} className="bg-surface-container-low p-4 rounded-xl flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-headline font-bold text-sm ${INITIALS_COLORS[idx + 1]}`}>
-                  {p.rank}
+                  {idx + 2}
                 </div>
                 <div className="overflow-hidden">
-                  <p className="font-headline font-bold text-sm truncate">{p.name}</p>
-                  <p className="font-body text-[10px] text-on-surface-variant">{p.points} pont</p>
+                  <p className="font-headline font-bold text-sm truncate">{p.display_name}</p>
+                  <p className="font-body text-[10px] text-on-surface-variant">{p.total_points ?? 0} pont</p>
                 </div>
               </div>
             ))}
@@ -70,21 +108,23 @@ export default function CommunityScreen() {
           {/* Ranks 4–5 */}
           <div className="bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/10">
             {LEADERBOARD.slice(3).map((p, idx) => (
-              <div key={p.rank}>
+              <div key={p.id ?? p.rank}>
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
-                    <span className="font-headline font-bold text-on-surface-variant w-5 text-center">{p.rank}</span>
+                    <span className="font-headline font-bold text-on-surface-variant w-5 text-center">{p.rank ?? idx + 4}</span>
                     <div className="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center font-headline font-bold text-xs text-on-surface-variant">
-                      {p.initials}
+                      {toInitials(p.display_name)}
                     </div>
-                    <p className="font-body font-semibold text-sm">{p.name}</p>
+                    <p className="font-body font-semibold text-sm">{p.display_name}</p>
                   </div>
-                  <span className="font-headline font-bold text-xs text-on-surface-variant">{p.points} pt</span>
+                  <span className="font-headline font-bold text-xs text-on-surface-variant">{p.total_points ?? 0} pt</span>
                 </div>
                 {idx < LEADERBOARD.slice(3).length - 1 && <div className="h-px mx-4 bg-surface-container" />}
               </div>
             ))}
           </div>
+            </>
+          )}
         </section>
 
         {/* Challenges */}
