@@ -8,3 +8,6 @@ dist-ssr/
 .vscode/
 .DS_Store
 Thumbs.db
+.mcp.json
+.claude/
+COMMUNITY_TASK.md

@@ -15,7 +15,7 @@ function HungarianFlag({ size = 28 }) {
   )
 }
 
-export default function BingoScreen({ user }) {
+export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileClick }) {
   const [phase, setPhase] = useState('welcome')
   const [board, setBoard] = useState([])
   const [selected, setSelected] = useState(new Set([CENTER]))
@@ -87,7 +87,7 @@ export default function BingoScreen({ user }) {
   if (phase === 'welcome') {
     return (
       <div className="flex flex-col min-h-screen bg-background">
-        <TopBar title="Közéleti Mozaik" />
+        <TopBar title="Közéleti Mozaik" onLeftClick={onMenuClick} onRightClick={onProfileClick} />
         <main className="flex-1 px-4 pt-6 pb-32 max-w-2xl mx-auto w-full space-y-6 slide-up">
           {/* Hero card */}
           <div className="relative rounded-3xl overflow-hidden shadow-lg" style={{ aspectRatio: '4/3' }}>
