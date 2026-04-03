@@ -20,8 +20,8 @@ export default function NewsScreen() {
   useEffect(() => {
     fetch('/api/news')
       .then(r => r.json())
-      .then(data => setArticles(data?.length ? data : null))
-      .catch(() => setArticles(null))
+      .then(data => setArticles(data?.length ? data : []))
+      .catch(() => setArticles([]))
   }, [])
 
   // If API failed/empty, use fallback static data

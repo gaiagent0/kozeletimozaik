@@ -38,6 +38,10 @@ export default function SettingsScreen({ user, loading }) {
   const [authBusy, setAuthBusy] = useState(false)
 
   useEffect(() => {
+    console.log('[Supabase] client initialized, URL:', import.meta.env.VITE_SUPABASE_URL ?? 'MISSING')
+  }, [])
+
+  useEffect(() => {
     if (!user) { setProfile(null); return }
     supabase.from('profiles').select('*').eq('id', user.id).single()
       .then(({ data }) => { if (data) setProfile(data) })
