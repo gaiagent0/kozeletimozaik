@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import TopBar from '../components/TopBar.jsx'
-import { signInWithGoogle, signInAnonymously, signOut } from '../lib/auth.js'
+import { signInWithGoogle, signInAnonymously, signOut, signInWithFacebook } from '../lib/auth.js'
 import { supabase } from '../lib/supabase.js'
 import { getSettings, saveSettings, requestNotifPermission } from '../lib/settings.js'
 
@@ -32,6 +32,10 @@ function SettingRow({ icon, iconBg, title, subtitle, right }) {
 
 export default function SettingsScreen({ user, loading, onNavigate, onMenuClick, onProfileClick }) {
   const [settings, setSettings] = useState(getSettings())
+  const [profile, setProfile] = useState(null)
+  const [authBusy, setAuthBusy] = useState(false)
+  const [toast, setToast] = useState(null)
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500) }
 
   const updateSetting = (key, value) => {
     const next = { ...settings, [key]: value }
@@ -39,8 +43,6 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
     saveSettings(next)
     if (key === 'notifs' && value) requestNotifPermission()
   }
-  const [profile, setProfile] = useState(null)
-  const [authBusy, setAuthBusy] = useState(false)
 
   useEffect(() => {
     console.log('[Supabase] client initialized, URL:', import.meta.env.VITE_SUPABASE_URL ?? 'MISSING')
@@ -59,6 +61,12 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
   const handleGoogleLogin = async () => { setAuthBusy(true); await signInWithGoogle(); setAuthBusy(false) }
   const handleAnonLogin = async () => { setAuthBusy(true); await signInAnonymously(); setAuthBusy(false) }
   const handleSignOut = async () => { setAuthBusy(true); await signOut(); setAuthBusy(false) }
+  const handleFacebookLogin = async () => {
+    setAuthBusy(true)
+    const { error } = await signInWithFacebook()
+    if (error) showToast('Facebook bejelentkezés hamarosan! 🔜')
+    setAuthBusy(false)
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -112,6 +120,40 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
                 </svg>
                 Bejelentkezés Google-lel
               </button>
+              {/* Elválasztó */}
+              <div className="flex items-center gap-3 w-full">
+                <div className="flex-1 h-px bg-outline-variant/40" />
+                <span className="text-[10px] text-on-surface-variant font-headline uppercase tracking-wider">vagy</span>
+                <div className="flex-1 h-px bg-outline-variant/40" />
+              </div>
+
+              {/* Facebook */}
+              <button onClick={handleFacebookLogin} disabled={authBusy}
+                className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl font-headline font-bold text-sm text-white active:scale-95 transition-transform disabled:opacity-60"
+                style={{ backgroundColor: '#1877F2' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+                Bejelentkezés Facebookkal
+              </button>
+
+              {/* TikTok + Instagram – hamarosan */}
+              <div className="w-full grid grid-cols-2 gap-2">
+                <button disabled className="flex items-center justify-center gap-2 py-3 rounded-2xl font-headline font-bold text-xs text-white opacity-40 cursor-not-allowed" style={{ backgroundColor: '#000' }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="white">
+                    <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.77a4.85 4.85 0 01-1.01-.08z"/>
+                  </svg>
+                  TikTok
+                </button>
+                <button disabled className="flex items-center justify-center gap-2 py-3 rounded-2xl font-headline font-bold text-xs text-white opacity-40 cursor-not-allowed" style={{ backgroundColor: '#E1306C' }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="white">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                  </svg>
+                  Instagram
+                </button>
+              </div>
+              <p className="text-[10px] text-on-surface-variant text-center">TikTok és Instagram – hamarosan</p>
+
               <button onClick={handleAnonLogin} disabled={authBusy}
                 className="w-full py-3 text-on-surface-variant font-headline font-bold text-sm active:scale-95 transition-transform disabled:opacity-60">
                 Folytatás vendégként
@@ -120,7 +162,7 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
           )}
         </section>
 
-        {/* Notifications */}
+        {/* Notifications & Game settings */}
         <section className="space-y-3">
           <p className="text-[10px] font-headline font-extrabold uppercase tracking-[0.2em] text-on-surface-variant px-1">
             Játék és Értesítések
@@ -152,58 +194,27 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
           </div>
         </section>
 
-        {/* Security */}
-        <section className="space-y-3">
-          <p className="text-[10px] font-headline font-extrabold uppercase tracking-[0.2em] text-on-surface-variant px-1">
-            Fiók Biztonság
-          </p>
-          <div className="bg-surface-container-lowest rounded-3xl overflow-hidden shadow-sm border border-outline-variant/10">
-            <button className="w-full flex items-center justify-between p-4 hover:bg-surface-container-low transition-colors active:scale-[0.99]">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface-variant">
-                  <span className="material-symbols-outlined">lock</span>
-                </div>
-                <div className="text-left">
-                  <p className="font-body font-bold text-sm">Jelszó megváltoztatása</p>
-                  <p className="text-xs text-on-surface-variant">Legutóbb 3 hónapja módosítva</p>
-                </div>
-              </div>
-              <span className="material-symbols-outlined text-on-surface-variant opacity-40">chevron_right</span>
-            </button>
-            <div className="h-px mx-4 bg-surface-container" />
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface-variant">
-                  <span className="material-symbols-outlined">shield_person</span>
-                </div>
-                <div>
-                  <p className="font-body font-bold text-sm">Kétlépcsős azonosítás (2FA)</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="w-2 h-2 rounded-full bg-secondary" />
-                    <p className="text-[10px] text-secondary font-bold uppercase tracking-tight">Aktív</p>
-                  </div>
-                </div>
-              </div>
-              <span className="material-symbols-outlined text-on-surface-variant opacity-40">chevron_right</span>
-            </div>
-          </div>
-        </section>
-
         {/* Logout */}
         {user && (
-        <div className="pt-2">
-          <button onClick={handleSignOut} disabled={authBusy}
-            className="w-full bg-primary/5 text-primary font-headline font-bold py-4 rounded-3xl border border-primary/10 flex items-center justify-center gap-2 active:bg-primary active:text-on-primary transition-all duration-200 disabled:opacity-60">
-            <span className="material-symbols-outlined">logout</span>
-            {authBusy ? 'Kijelentkezés…' : 'Kijelentkezés'}
-          </button>
-          <p className="text-center text-[10px] text-on-surface-variant mt-6 uppercase tracking-widest font-headline font-bold opacity-40">
-            Választási Bingó 2026 v2.0.0
-          </p>
-        </div>
+          <div className="pt-2">
+            <button onClick={handleSignOut} disabled={authBusy}
+              className="w-full bg-primary/5 text-primary font-headline font-bold py-4 rounded-3xl border border-primary/10 flex items-center justify-center gap-2 active:bg-primary active:text-on-primary transition-all duration-200 disabled:opacity-60">
+              <span className="material-symbols-outlined">logout</span>
+              {authBusy ? 'Kijelentkezés…' : 'Kijelentkezés'}
+            </button>
+            <p className="text-center text-[10px] text-on-surface-variant mt-6 uppercase tracking-widest font-headline font-bold opacity-40">
+              Választási Bingó 2026 v2.0.0
+            </p>
+          </div>
         )}
 
       </main>
+
+      {toast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface text-sm font-headline font-bold px-5 py-3 rounded-2xl shadow-lg whitespace-nowrap">
+          {toast}
+        </div>
+      )}
     </div>
   )
 }

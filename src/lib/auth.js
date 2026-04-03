@@ -10,3 +10,12 @@ export const signInAnonymously = () =>
   supabase.auth.signInAnonymously()
 
 export const signOut = () => supabase.auth.signOut()
+
+export const signInWithFacebook = () =>
+  supabase.auth.signInWithOAuth({
+    provider: 'facebook',
+    options: {
+      redirectTo: window.location.origin,
+      scopes: 'email,public_profile',
+    }
+  })

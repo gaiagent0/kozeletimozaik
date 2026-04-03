@@ -313,21 +313,18 @@ export default function CommunityScreen({ user, onNavigate, onMenuClick, onProfi
             </div>
           </div>
 
-          {/* Közös Bingó Est */}
-          <div className="bg-surface-container-low p-5 rounded-2xl flex items-center gap-4">
-            <div className="bg-secondary-container p-3.5 rounded-xl flex-shrink-0">
-              <span className="material-symbols-outlined text-secondary text-2xl">groups</span>
+          {/* Közös Bingó Est – hamarosan */}
+          <div className="bg-surface-container-low p-5 rounded-2xl flex items-center gap-4 opacity-50">
+            <div className="bg-surface-container-high p-3.5 rounded-xl flex-shrink-0">
+              <span className="material-symbols-outlined text-on-surface-variant text-2xl">groups</span>
             </div>
             <div className="flex-1">
-              <h4 className="font-headline font-bold text-on-surface text-sm">Közös Bingó Est</h4>
-              <p className="font-body text-xs text-on-surface-variant mt-0.5">Ma 20:00 • Élő közvetítés</p>
+              <h4 className="font-headline font-bold text-on-surface-variant text-sm">Közös Bingó Est</h4>
+              <p className="font-body text-xs text-on-surface-variant mt-0.5">Hamarosan elérhető</p>
             </div>
-            <button
-              onClick={() => showToast('Értesítés beállítva! 🔔')}
-              className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-outline-variant text-primary active:scale-90 transition-transform flex-shrink-0"
-            >
-              <span className="material-symbols-outlined text-xl">notifications</span>
-            </button>
+            <span className="bg-surface-container text-on-surface-variant text-[10px] font-headline font-bold px-2 py-1 rounded-full">
+              Hamarosan
+            </span>
           </div>
 
           {/* Napi Bajnok */}

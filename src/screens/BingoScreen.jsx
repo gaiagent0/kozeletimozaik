@@ -16,25 +16,31 @@ function HungarianFlag({ size = 28 }) {
   )
 }
 
-const ELECTION_TARGET = new Date('2026-04-12T19:00:00+02:00').getTime()
+const ELECTION_TARGET = new Date('2026-04-12T17:00:00Z').getTime() // 2026-04-12 19:00 CEST = 17:00 UTC
 
 function useCountdown() {
-  const [remaining, setRemaining] = useState(() => Math.max(0, ELECTION_TARGET - Date.now()))
+  function calcDisplay() {
+    const remaining = Math.max(0, ELECTION_TARGET - Date.now())
+    const days  = Math.floor(remaining / 86400000)
+    const hours = Math.floor((remaining % 86400000) / 3600000)
+    const mins  = Math.floor((remaining % 3600000) / 60000)
+    const secs  = Math.floor((remaining % 60000) / 1000)
+    const pad   = n => String(n).padStart(2, '0')
+    return { days, time: `${pad(hours)}:${pad(mins)}:${pad(secs)}`, done: remaining === 0 }
+  }
+
+  const [display, setDisplay] = useState(() => calcDisplay())
+
   useEffect(() => {
-    if (remaining === 0) return
     const id = setInterval(() => {
-      const r = Math.max(0, ELECTION_TARGET - Date.now())
-      setRemaining(r)
-      if (r === 0) clearInterval(id)
+      const d = calcDisplay()
+      setDisplay(d)
+      if (d.done) clearInterval(id)
     }, 1000)
     return () => clearInterval(id)
   }, [])
-  const days = Math.floor(remaining / 86400000)
-  const hours = Math.floor((remaining % 86400000) / 3600000)
-  const mins = Math.floor((remaining % 3600000) / 60000)
-  const secs = Math.floor((remaining % 60000) / 1000)
-  const pad = n => String(n).padStart(2, '0')
-  return { days, time: `${pad(hours)}:${pad(mins)}:${pad(secs)}`, done: remaining === 0 }
+
+  return display
 }
 
 export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileClick }) {
@@ -124,16 +130,19 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
     const encoded = encodeURIComponent(words.join(','))
     const shareUrl = `${url}?words=${encoded}&score=${count}`
     const text = isBingo
-      ? `🇭🇺 BINGÓ! ${count} mezőm volt – "${words[0]}" és még ${count - 1} más! Próbáld ki: ${shareUrl} #valasztas2026`
-      : `🗳️ ${count}/24 mezőnél tartok a Választási Bingón. Próbáld ki: ${shareUrl} #valasztas2026`
+      ? `🇭🇺 BINGÓ! ${count} mezőm volt!\n"${words.slice(0, 3).join('", "')}" – és más szavak.\n▶ Próbáld ki: ${shareUrl}\n#valasztas2026 #bingo2026`
+      : `🗳️ ${count}/24 mezőnél tartok a Választási Bingón!\n▶ Próbáld ki: ${shareUrl}\n#valasztas2026 #bingo2026`
 
     try {
       const { default: html2canvas } = await import('html2canvas')
       const grid = document.getElementById('bingo-grid')
       const canvas = await html2canvas(grid, {
-        backgroundColor: '#eae8e5',
-        scale: 2,
-        logging: false
+        backgroundColor: '#f5f0eb',
+        scale: 3,
+        logging: false,
+        useCORS: true,
+        imageTimeout: 0,
+        removeContainer: true,
       })
       canvas.toBlob(async (blob) => {
         const file = new File([blob], 'valasztasi-bingo.png', { type: 'image/png' })
@@ -292,29 +301,81 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
         </div>
 
         {/* Bingo Grid */}
-        <div id="bingo-grid" className="p-2 bg-surface-container-high rounded-3xl shadow-inner">
+        <div
+          id="bingo-grid"
+          className="rounded-3xl overflow-hidden"
+          style={{
+            background: 'linear-gradient(145deg, #eae8e5, #efeeeb)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.15)',
+            padding: '10px',
+          }}
+        >
           <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${SIZE}, minmax(0, 1fr))` }}>
             {board.map((word, i) => {
               const isCenter = i === CENTER
               const isWin = winCells.has(i)
               const isSel = selected.has(i)
-              let cellClass = 'bg-surface-container-lowest text-on-surface shadow-sm border border-outline-variant/20'
-              if (isCenter) cellClass = 'bg-primary/10 text-primary border-2 border-primary/20'
-              else if (isWin) cellClass = 'bg-primary text-on-primary border-primary shadow-md bingo-pop'
-              else if (isSel) cellClass = 'bg-secondary-container text-on-secondary-container border-secondary-container'
+
+              const baseStyle = {
+                borderRadius: '12px',
+                transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                userSelect: 'none',
+              }
+              const raisedStyle = {
+                background: 'linear-gradient(160deg, #ffffff 0%, #f8f6f3 100%)',
+                boxShadow: '0 4px 0 rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
+                transform: 'translateY(-1px)',
+                border: '1px solid rgba(0,0,0,0.06)',
+              }
+              const pressedStyle = {
+                background: 'linear-gradient(160deg, #c0eec6 0%, #a5d1ab 100%)',
+                boxShadow: '0 1px 0 rgba(0,0,0,0.10), inset 0 2px 4px rgba(0,0,0,0.10)',
+                transform: 'translateY(1px)',
+                border: '1px solid rgba(0,0,0,0.04)',
+              }
+              const winStyle = {
+                background: 'linear-gradient(135deg, #aa0424 0%, #7a0019 100%)',
+                boxShadow: '0 4px 0 rgba(170,4,36,0.35), 0 0 20px rgba(170,4,36,0.25), inset 0 1px 0 rgba(255,255,255,0.2)',
+                transform: 'translateY(-2px) scale(1.03)',
+                border: '1px solid rgba(255,255,255,0.1)',
+              }
+              const centerStyle = {
+                background: 'linear-gradient(135deg, rgba(170,4,36,0.12) 0%, rgba(170,4,36,0.06) 100%)',
+                boxShadow: '0 2px 0 rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6)',
+                border: '2px solid rgba(170,4,36,0.2)',
+              }
+
+              const cellStyle = isCenter ? centerStyle : isWin ? winStyle : isSel ? pressedStyle : raisedStyle
+
               return (
                 <button
                   key={i}
                   onClick={() => toggleCell(i)}
-                  className={`aspect-square rounded-xl flex flex-col items-center justify-center p-1.5 text-center transition-all duration-200 active:scale-95 ${cellClass} ${isCenter ? 'cursor-default' : 'cursor-pointer hover:opacity-80'}`}
+                  className={`aspect-square flex flex-col items-center justify-center p-1 text-center active:scale-95 ${isCenter ? 'cursor-default' : 'cursor-pointer'} ${isWin ? 'bingo-pop' : ''}`}
+                  style={{ ...baseStyle, ...cellStyle }}
                 >
                   {isCenter ? (
                     <>
-                      <span className="material-symbols-outlined text-lg mb-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      <span className="text-[8px] font-black uppercase tracking-tight leading-none">FREE</span>
+                      <span className="material-symbols-outlined text-primary text-xl mb-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>how_to_vote</span>
+                      <span className="text-[7px] font-black uppercase tracking-widest text-primary leading-none">FREE</span>
                     </>
                   ) : (
-                    <span className="text-[9px] md:text-[10px] font-headline font-bold leading-tight break-words w-full line-clamp-4">
+                    <span
+                      className="leading-tight break-words w-full"
+                      style={{
+                        fontSize: 'clamp(7px, 1.9vw, 10px)',
+                        fontFamily: '"Plus Jakarta Sans", sans-serif',
+                        fontWeight: isWin ? 800 : isSel ? 700 : 600,
+                        textAlign: 'center',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 4,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        color: isWin ? '#ffffff' : isSel ? '#446d4e' : '#1b1c1a',
+                        textShadow: isWin ? '0 1px 2px rgba(0,0,0,0.25)' : 'none',
+                        letterSpacing: '-0.01em',
+                      }}
+                    >
                       {word}
                     </span>
                   )}
