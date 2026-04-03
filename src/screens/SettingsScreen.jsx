@@ -32,7 +32,6 @@ function SettingRow({ icon, iconBg, title, subtitle, right }) {
 
 export default function SettingsScreen({ user, loading, onNavigate, onMenuClick, onProfileClick }) {
   const [settings, setSettings] = useState(getSettings())
-  const [lang, setLang] = useState('hu')
 
   const updateSetting = (key, value) => {
     const next = { ...settings, [key]: value }
@@ -153,30 +152,6 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
           </div>
         </section>
 
-        {/* Language */}
-        <section className="space-y-3">
-          <p className="text-[10px] font-headline font-extrabold uppercase tracking-[0.2em] text-on-surface-variant px-1">Nyelv</p>
-          <div className="grid grid-cols-2 p-1.5 bg-surface-container-high rounded-xl gap-1">
-            {[
-              { id: 'hu', label: 'Magyar', icon: 'check_circle' },
-              { id: 'en', label: 'English', icon: null },
-            ].map(l => (
-              <button
-                key={l.id}
-                onClick={() => setLang(l.id)}
-                className={`py-2.5 px-4 rounded-lg font-body font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-                  lang === l.id
-                    ? 'bg-surface-container-lowest shadow-sm text-primary'
-                    : 'text-on-surface-variant hover:bg-surface-container/50'
-                }`}
-              >
-                {l.icon && lang === l.id && <span className="material-symbols-outlined text-base">{l.icon}</span>}
-                {l.label}
-              </button>
-            ))}
-          </div>
-        </section>
-
         {/* Security */}
         <section className="space-y-3">
           <p className="text-[10px] font-headline font-extrabold uppercase tracking-[0.2em] text-on-surface-variant px-1">
@@ -223,7 +198,7 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
             {authBusy ? 'Kijelentkezés…' : 'Kijelentkezés'}
           </button>
           <p className="text-center text-[10px] text-on-surface-variant mt-6 uppercase tracking-widest font-headline font-bold opacity-40">
-            Közéleti Mozaik v2.0.0 · 2026
+            Választási Bingó 2026 v2.0.0
           </p>
         </div>
         )}

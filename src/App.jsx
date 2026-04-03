@@ -10,15 +10,25 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('bingo')
   const { user, loading } = useAuth()
 
+  const goToBingo = () => setActiveTab('bingo')
   const goToSettings = () => setActiveTab('settings')
+
+  const openSettingsMenu = () => {
+    const choice = window.confirm('Névjegy\n\nVálassz:\nOK → Névjegy\nMégse → Visszajelzés küldése')
+    if (choice) {
+      alert('Választási Bingó 2026\n\nKészült szórakoztatási céllal.\n\nFejlesztő: GaiAgent')
+    } else {
+      window.open('mailto:szechist@gmail.com?subject=Bingó visszajelzés', '_blank')
+    }
+  }
 
   const renderScreen = () => {
     switch (activeTab) {
-      case 'bingo':     return <BingoScreen user={user} onNavigate={setActiveTab} onMenuClick={goToSettings} onProfileClick={goToSettings} />
-      case 'community': return <CommunityScreen user={user} onNavigate={setActiveTab} onMenuClick={goToSettings} onProfileClick={goToSettings} />
-      case 'news':      return <NewsScreen onNavigate={setActiveTab} onMenuClick={goToSettings} onProfileClick={goToSettings} />
-      case 'settings':  return <SettingsScreen user={user} loading={loading} onNavigate={setActiveTab} onMenuClick={goToSettings} onProfileClick={goToSettings} />
-      default:          return <BingoScreen user={user} onNavigate={setActiveTab} onMenuClick={goToSettings} onProfileClick={goToSettings} />
+      case 'bingo':     return <BingoScreen user={user} onNavigate={setActiveTab} onMenuClick={goToBingo} onProfileClick={goToSettings} />
+      case 'community': return <CommunityScreen user={user} onNavigate={setActiveTab} onMenuClick={goToBingo} onProfileClick={goToSettings} />
+      case 'news':      return <NewsScreen onNavigate={setActiveTab} onMenuClick={goToBingo} onProfileClick={goToSettings} />
+      case 'settings':  return <SettingsScreen user={user} loading={loading} onNavigate={setActiveTab} onMenuClick={goToBingo} onProfileClick={openSettingsMenu} />
+      default:          return <BingoScreen user={user} onNavigate={setActiveTab} onMenuClick={goToBingo} onProfileClick={goToSettings} />
     }
   }
 

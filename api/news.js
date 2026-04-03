@@ -48,12 +48,19 @@ export default async function handler(req) {
   results.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
 
   const POLITICAL_KEYWORDS = [
-    'választás', 'választási', 'kampány', 'párt', 'kormány', 'ellenzék',
-    'miniszter', 'parlament', 'politika', 'politikai', 'fidesz', 'tisza',
-    'magyar péter', 'orbán', 'szavazás', 'szavazat', 'képviselő',
-    'törvény', 'alaptörvény', 'eu', 'brüsszel', 'korrupció',
-    'önkormányzat', 'polgármester', 'főpolgármester', 'ellenzéki',
-    'koalíció', 'frakció', 'budget', 'költségvetés', 'adó', 'rezsi'
+    'választás', 'választási', 'szavazás', 'szavazat', 'szavazók', 'szavazókör',
+    'kampány', 'kampányol', 'jelölt', 'jelöltek', 'lista', 'mandátum',
+    'fidesz', 'tisza', 'párt', 'ellenzék', 'koalíció', 'frakció',
+    'orbán', 'magyar péter', 'miniszterelnök', 'képviselő', 'politikus',
+    'parlament', 'kormány', 'miniszter', 'államtitkár', 'önkormányzat',
+    'polgármester', 'főpolgármester', 'nemzetgyűlés', 'köztársaság',
+    'rezsi', 'infláció', 'adó', 'nyugdíj', 'egészségügy', 'oktatás',
+    'lakhatás', 'bérek', 'minimálbér', 'munkanélküli', 'szegénység',
+    'brüsszel', 'eu', 'európai', 'oroszország', 'ukrajna', 'nato',
+    'szuverenitás', 'migráció', 'határőrizet',
+    'korrupció', 'átláthatóság', 'tüntetés', 'civil', 'ngo',
+    'médiaszabadság', 'sajtó', 'bíróság', 'alkotmánybíróság',
+    'alaptörvény', 'törvény', 'rendelet', 'határozat'
   ]
 
   const isPolitical = (title = '', description = '') => {
@@ -62,7 +69,7 @@ export default async function handler(req) {
   }
 
   const political = results.filter(r => isPolitical(r.title, r.description))
-  const finalResults = political.length >= 4 ? political : results
+  const finalResults = political.length >= 3 ? political : results
 
   return new Response(JSON.stringify(finalResults.slice(0, 12)), {
     headers: {

@@ -92,7 +92,7 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
       })
   }
 
-  const handleShare = () => {
+  const handleShare = async () => {
     const count = selected.size - 1
     const url = import.meta.env.VITE_APP_URL || 'https://valasztasibingo.hu'
     const words = Array.from(selected)
@@ -103,18 +103,39 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
     const shareUrl = `${url}?words=${encoded}&score=${count}`
     const text = isBingo
       ? `🇭🇺 BINGÓ! ${count} mezőm volt – "${words[0]}" és még ${count - 1} más! Próbáld ki: ${shareUrl} #valasztas2026`
-      : `🗳️ ${count}/24 mezőnél tartok a Választási Bingón – Közéleti Mozaik. Próbáld ki: ${shareUrl} #valasztas2026`
-    if (navigator.share) {
-      navigator.share({ title: 'Választási Bingó 2026', text, url: shareUrl }).catch(() => copyToClipboard(text))
-    } else {
-      copyToClipboard(text)
+      : `🗳️ ${count}/24 mezőnél tartok a Választási Bingón. Próbáld ki: ${shareUrl} #valasztas2026`
+
+    try {
+      const { default: html2canvas } = await import('html2canvas')
+      const grid = document.getElementById('bingo-grid')
+      const canvas = await html2canvas(grid, {
+        backgroundColor: '#eae8e5',
+        scale: 2,
+        logging: false
+      })
+      canvas.toBlob(async (blob) => {
+        const file = new File([blob], 'valasztasi-bingo.png', { type: 'image/png' })
+        if (navigator.share && navigator.canShare({ files: [file] })) {
+          await navigator.share({ title: 'Választási Bingó 2026', text, files: [file] })
+        } else if (navigator.share) {
+          await navigator.share({ title: 'Választási Bingó 2026', text, url: shareUrl })
+        } else {
+          copyToClipboard(text)
+        }
+      }, 'image/png')
+    } catch {
+      if (navigator.share) {
+        navigator.share({ title: 'Választási Bingó 2026', text, url: shareUrl }).catch(() => copyToClipboard(text))
+      } else {
+        copyToClipboard(text)
+      }
     }
   }
 
   if (phase === 'welcome') {
     return (
       <div className="flex flex-col min-h-screen bg-background">
-        <TopBar title="Közéleti Mozaik" onLeftClick={onMenuClick} onRightClick={onProfileClick} />
+        <TopBar title="Választási Bingó 2026" onLeftClick={onMenuClick} onRightClick={onProfileClick} />
         <main className="flex-1 px-4 pt-6 pb-32 max-w-2xl mx-auto w-full space-y-6 slide-up">
           {/* Hero card */}
           <div className="relative rounded-3xl overflow-hidden shadow-lg" style={{ aspectRatio: '4/3' }}>
@@ -192,7 +213,7 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
   const count = selected.size - 1
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <TopBar title="Közéleti Mozaik" />
+      <TopBar title="Választási Bingó 2026" onLeftClick={onMenuClick} onRightClick={onProfileClick} />
       <main className="flex-1 px-4 pt-4 pb-32 max-w-2xl mx-auto w-full space-y-4 slide-up">
 
         {/* Game header */}
@@ -231,7 +252,7 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
         </div>
 
         {/* Bingo Grid */}
-        <div className="p-2 bg-surface-container-high rounded-3xl shadow-inner">
+        <div id="bingo-grid" className="p-2 bg-surface-container-high rounded-3xl shadow-inner">
           <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${SIZE}, minmax(0, 1fr))` }}>
             {board.map((word, i) => {
               const isCenter = i === CENTER
