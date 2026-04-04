@@ -21,12 +21,11 @@ const ELECTION_TARGET = new Date('2026-04-12T17:00:00Z').getTime() // 2026-04-12
 function useCountdown() {
   function calcDisplay() {
     const remaining = Math.max(0, ELECTION_TARGET - Date.now())
-    const days  = Math.floor(remaining / 86400000)
-    const hours = Math.floor((remaining % 86400000) / 3600000)
-    const mins  = Math.floor((remaining % 3600000) / 60000)
-    const secs  = Math.floor((remaining % 60000) / 1000)
-    const pad   = n => String(n).padStart(2, '0')
-    return { days, time: `${pad(hours)}:${pad(mins)}:${pad(secs)}`, done: remaining === 0 }
+    const totalHours = Math.floor(remaining / 3600000)
+    const mins = Math.floor((remaining % 3600000) / 60000)
+    const secs = Math.floor((remaining % 60000) / 1000)
+    const pad  = n => String(n).padStart(2, '0')
+    return { totalHours, sub: `${pad(mins)}:${pad(secs)}`, done: remaining === 0 }
   }
 
   const [display, setDisplay] = useState(() => calcDisplay())
@@ -202,13 +201,9 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
             {countdown.done ? (
               <p className="font-headline font-black text-4xl text-primary">Az urnák zárva</p>
             ) : (
-              <>
-                <div className="flex items-end justify-center gap-1 mb-1">
-                  <span className="font-headline font-black text-7xl leading-none text-on-surface tabular-nums">{countdown.days}</span>
-                  <span className="font-headline font-bold text-lg text-on-surface-variant mb-2">nap</span>
-                </div>
-                <p className="font-headline font-bold text-2xl text-on-surface-variant tabular-nums tracking-widest">{countdown.time}</p>
-              </>
+              <p className="font-headline font-black text-5xl text-on-surface tabular-nums tracking-widest">
+                {String(countdown.totalHours).padStart(3, '0')}:{countdown.sub}
+              </p>
             )}
           </div>
 
