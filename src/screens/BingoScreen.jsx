@@ -50,6 +50,7 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
   const [winCells, setWinCells] = useState(new Set())
   const [isBingo, setIsBingo] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [shareMsg, setShareMsg] = useState('')
   const [totalBingos, setTotalBingos] = useState(0)
   const [stats, setStats] = useState({ bingos: 0, players: 0, topWord: '—' })
   const savedRef = useRef(false)
@@ -137,57 +138,106 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
     setIsBingo(bingo)
   }
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard?.writeText(text)
-      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500) })
-      .catch(() => {
-        const ta = document.createElement('textarea')
-        ta.value = text; document.body.appendChild(ta); ta.select()
-        try { document.execCommand('copy'); setCopied(true); setTimeout(() => setCopied(false), 2500) } catch {}
-        document.body.removeChild(ta)
-      })
-  }
-
   const handleShare = async () => {
     const count = selected.size - 1
-    const url = import.meta.env.VITE_APP_URL || 'https://valasztasibingo.hu'
+    const url = 'https://valasztasibingo.hu'
     const words = Array.from(selected)
       .filter(i => i !== CENTER)
       .map(i => board[i])
-      .slice(0, 5)
-    const encoded = encodeURIComponent(words.join(','))
-    const shareUrl = `${url}?words=${encoded}&score=${count}`
-    const text = isBingo
-      ? `🇭🇺 BINGÓ! ${count} mezőm volt!\n"${words.slice(0, 3).join('", "')}" – és más szavak.\n▶ Próbáld ki: ${shareUrl}\n#valasztas2026 #bingo2026`
-      : `🗳️ ${count}/24 mezőnél tartok a Választási Bingón!\n▶ Próbáld ki: ${shareUrl}\n#valasztas2026 #bingo2026`
+      .slice(0, 3)
+
+    const shareTexts = {
+      bingo: [
+        `🇭🇺 BINGÓ! Kiszúrtam ${count} politikai varázsszót a mai közvetítésen!\n"${words.join('", "')}" – és még több.\n🗳️ Te is játszol? → ${url}\n#ValasztasiBingo #valasztas2026`,
+        `🎯 BINGÓ! ${count} mezőm van – köztük: "${words[0]}"!\nHallgatod te is a kampánybeszédeket? Játssz velem!\n→ ${url}\n#bingo2026 #valasztas2026`,
+        `🏆 Megcsináltam! ${count}/24 mező – BINGÓ!\nA magyar politika legjobb italbulija… ital nélkül.\n→ ${url} #ValasztasiBingo`,
+      ],
+      playing: [
+        `🗳️ ${count}/24 mezőnél tartok a Választási Bingón!\nMár hallottam: "${words[0] || 'Brüsszel'}"... Ki tudja hány lesz még?\n→ ${url}\n#valasztas2026 #bingo2026`,
+        `🎮 Élőben játszom a Választási Bingót – ${count} szó eddig!\nTe is próbáld ki a választási kampány közvetítése alatt!\n→ ${url}`,
+        `📻 Hallgatom Orbánt / Magyar Pétert és bingózok 🎯\n${count}/24 eddig, ki tudja mi hangzik el még!\n→ ${url} #ValasztasiBingo`,
+      ]
+    }
+    const textPool = isBingo ? shareTexts.bingo : shareTexts.playing
+    const shareText = textPool[Math.floor(Math.random() * textPool.length)]
 
     try {
       const { default: html2canvas } = await import('html2canvas')
       const grid = document.getElementById('bingo-grid')
-      const canvas = await html2canvas(grid, {
-        backgroundColor: '#f5f0eb',
-        scale: 3,
+
+      const gridCanvas = await html2canvas(grid, {
+        backgroundColor: null,
+        scale: 2,
         logging: false,
         useCORS: true,
-        imageTimeout: 0,
-        removeContainer: true,
       })
-      canvas.toBlob(async (blob) => {
-        const file = new File([blob], 'valasztasi-bingo.png', { type: 'image/png' })
+
+      const W = gridCanvas.width
+      const headerH = 80
+      const footerH = 70
+      const padding = 24
+      const totalH = headerH + gridCanvas.height + footerH + padding * 2
+
+      const branded = document.createElement('canvas')
+      branded.width = W + padding * 2
+      branded.height = totalH
+      const ctx = branded.getContext('2d')
+
+      ctx.fillStyle = '#fbf9f6'
+      ctx.fillRect(0, 0, branded.width, branded.height)
+
+      const stripeH = 8
+      ctx.fillStyle = '#CE2939'; ctx.fillRect(0, 0, branded.width, stripeH)
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, stripeH, branded.width, stripeH)
+      ctx.fillStyle = '#477050'; ctx.fillRect(0, stripeH * 2, branded.width, stripeH)
+
+      ctx.fillStyle = '#aa0424'
+      ctx.font = 'bold 28px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('🗳️ VÁLASZTÁSI BINGÓ 2026', branded.width / 2, stripeH * 3 + 44)
+
+      ctx.drawImage(gridCanvas, padding, headerH)
+
+      const resultY = headerH + gridCanvas.height + 20
+      ctx.fillStyle = isBingo ? '#aa0424' : '#555'
+      ctx.font = `bold ${isBingo ? 26 : 20}px sans-serif`
+      ctx.textAlign = 'center'
+      ctx.fillText(
+        isBingo ? `🏆 BINGÓ! ${count}/24 mező` : `${count}/24 mező megjelölve`,
+        branded.width / 2,
+        resultY
+      )
+
+      ctx.fillStyle = '#888'
+      ctx.font = '18px sans-serif'
+      ctx.fillText('valasztasibingo.hu', branded.width / 2, resultY + 30)
+
+      branded.toBlob(async (blob) => {
+        const file = new File([blob], 'valasztasi-bingo-2026.png', { type: 'image/png' })
+
         if (navigator.share && navigator.canShare({ files: [file] })) {
-          await navigator.share({ title: 'Választási Bingó 2026', text, files: [file] })
-        } else if (navigator.share) {
-          await navigator.share({ title: 'Választási Bingó 2026', text, url: shareUrl })
-        } else {
-          copyToClipboard(text)
+          await navigator.share({ title: 'Választási Bingó 2026', text: shareText, files: [file] })
+          return
         }
+
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = 'valasztasi-bingo-2026.png'
+        a.click()
+        URL.revokeObjectURL(a.href)
+
+        await navigator.clipboard?.writeText(shareText).catch(() => {})
+        setCopied(true)
+        setTimeout(() => setCopied(false), 4000)
+        setShareMsg('📥 Kép letöltve + szöveg másolva! Illeszd be közösségi médiába.')
+        setTimeout(() => setShareMsg(''), 5000)
       }, 'image/png')
-    } catch {
-      if (navigator.share) {
-        navigator.share({ title: 'Választási Bingó 2026', text, url: shareUrl }).catch(() => copyToClipboard(text))
-      } else {
-        copyToClipboard(text)
-      }
+
+    } catch (err) {
+      console.error('Share error:', err)
+      await navigator.clipboard?.writeText(shareText).catch(() => {})
+      setCopied(true)
+      setTimeout(() => setCopied(false), 4000)
     }
   }
 
@@ -450,8 +500,8 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
             onClick={handleShare}
             className={`flex-1 py-3.5 rounded-xl font-headline font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm ${copied ? 'bg-secondary text-on-secondary' : 'bg-primary text-on-primary'}`}
           >
-            <span className="material-symbols-outlined text-base">{copied ? 'check' : 'share'}</span>
-            {copied ? 'Másolva!' : 'Megosztás'}
+            <span className="material-symbols-outlined text-base">{copied ? 'download_done' : 'share'}</span>
+            {copied ? 'Letöltve + Másolva!' : 'Megosztás'}
           </button>
           <button onClick={newBoard} className="py-3.5 px-4 bg-surface-container-high rounded-xl text-on-surface active:scale-95 transition-transform">
             <span className="material-symbols-outlined">refresh</span>
@@ -474,6 +524,12 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
         </div>
         <LegalFooter />
       </main>
+
+      {shareMsg && (
+        <div className="fixed bottom-32 left-4 right-4 z-50 bg-on-surface text-surface text-sm font-headline font-bold px-5 py-3 rounded-2xl shadow-lg text-center">
+          {shareMsg}
+        </div>
+      )}
     </div>
   )
 }
