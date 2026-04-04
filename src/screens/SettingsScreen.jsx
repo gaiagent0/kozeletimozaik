@@ -1,5 +1,19 @@
 import { useState, useEffect } from 'react'
 import TopBar from '../components/TopBar.jsx'
+
+const GENERATED_NAMES = [
+  'Névtelen Szavazó', 'Titkos Bingós', 'Brüsszel Bajnok',
+  'Rezsi Harcos', 'Szuverén Játékos', 'Béke Vadász',
+  'Kétharmad Király', 'Hatvanpusztai', 'Konzultációs Hős',
+  'Ukrán Kém 🕵️', 'Da-da-da Mester', 'Pálinkás Hős',
+  'Gundalf a Nagy', 'PADME Lovag', 'Lázárinfós',
+  'Feketeruhás', 'Pancser Százados', 'Százados Fan',
+]
+
+function getRandomNames(n = 6) {
+  const shuffled = [...GENERATED_NAMES].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, n)
+}
 import LegalFooter from '../components/LegalFooter.jsx'
 import { signInWithGoogle, signInAnonymously, signOut, signInWithFacebook } from '../lib/auth.js'
 import { supabase } from '../lib/supabase.js'
@@ -36,6 +50,10 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
   const [profile, setProfile] = useState(null)
   const [authBusy, setAuthBusy] = useState(false)
   const [toast, setToast] = useState(null)
+  const [editingName, setEditingName] = useState(false)
+  const [nameInput, setNameInput] = useState('')
+  const [suggestedNames, setSuggestedNames] = useState([])
+  const [savingName, setSavingName] = useState(false)
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500) }
 
   const updateSetting = (key, value) => {
@@ -103,6 +121,77 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
                   </div>
                 ))}
               </div>
+
+              {/* Névválasztó */}
+              {!editingName ? (
+                <button
+                  onClick={() => {
+                    setNameInput(displayName)
+                    setSuggestedNames(getRandomNames(6))
+                    setEditingName(true)
+                  }}
+                  className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 bg-surface-container rounded-2xl text-sm font-headline font-bold text-on-surface-variant active:scale-95 transition-transform border border-outline-variant/20"
+                >
+                  <span className="material-symbols-outlined text-base">edit</span>
+                  Megjelenítési név módosítása
+                </button>
+              ) : (
+                <div className="w-full mt-3 space-y-3">
+                  <input
+                    type="text"
+                    value={nameInput}
+                    onChange={e => setNameInput(e.target.value)}
+                    maxLength={30}
+                    placeholder="Írd be a neved..."
+                    className="w-full px-4 py-3 bg-surface-container rounded-2xl text-sm font-body text-on-surface border border-outline-variant/30 focus:outline-none focus:border-primary"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    {suggestedNames.map(name => (
+                      <button
+                        key={name}
+                        onClick={() => setNameInput(name)}
+                        className={`text-xs px-3 py-1.5 rounded-full font-body border transition-all ${
+                          nameInput === name
+                            ? 'bg-primary text-on-primary border-primary'
+                            : 'bg-surface-container text-on-surface-variant border-outline-variant/30 active:scale-95'
+                        }`}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        if (!nameInput.trim()) return
+                        setSavingName(true)
+                        const { error } = await supabase
+                          .from('profiles')
+                          .update({ display_name: nameInput.trim() })
+                          .eq('id', user.id)
+                        if (!error) {
+                          setProfile(p => ({ ...p, display_name: nameInput.trim() }))
+                          showToast('✓ Név mentve!')
+                          setEditingName(false)
+                        } else {
+                          showToast('Hiba a mentésnél, próbáld újra')
+                        }
+                        setSavingName(false)
+                      }}
+                      disabled={savingName || !nameInput.trim()}
+                      className="flex-1 py-2.5 bg-primary text-on-primary rounded-2xl text-sm font-headline font-bold active:scale-95 transition-transform disabled:opacity-50"
+                    >
+                      {savingName ? 'Mentés…' : 'Mentés'}
+                    </button>
+                    <button
+                      onClick={() => setEditingName(false)}
+                      className="px-4 py-2.5 bg-surface-container text-on-surface-variant rounded-2xl text-sm font-headline font-bold active:scale-95 transition-transform"
+                    >
+                      Mégse
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-surface-container-lowest rounded-3xl p-6 shadow-sm flex flex-col items-center text-center border border-outline-variant/10 space-y-4">
