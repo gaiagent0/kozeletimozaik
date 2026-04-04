@@ -50,8 +50,36 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
   const [isBingo, setIsBingo] = useState(false)
   const [copied, setCopied] = useState(false)
   const [totalBingos, setTotalBingos] = useState(0)
+  const [stats, setStats] = useState({ bingos: 0, players: 0, topWord: '—' })
   const savedRef = useRef(false)
   const countdown = useCountdown()
+
+  useEffect(() => {
+    const today = new Date().toLocaleDateString('sv-SE')
+    supabase
+      .from('bingo_sessions')
+      .select('id', { count: 'exact', head: true })
+      .gte('completed_at', today + 'T00:00:00')
+      .then(({ count }) => setStats(s => ({ ...s, bingos: count ?? 0 })))
+
+    supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .then(({ count }) => setStats(s => ({ ...s, players: count ?? 0 })))
+
+    supabase
+      .from('bingo_sessions')
+      .select('words_matched')
+      .gte('completed_at', today + 'T00:00:00')
+      .limit(20)
+      .then(({ data }) => {
+        if (!data?.length) return
+        const freq = {}
+        data.forEach(row => (row.words_matched || []).forEach(w => { freq[w] = (freq[w] || 0) + 1 }))
+        const top = Object.entries(freq).sort((a, b) => b[1] - a[1])[0]
+        if (top) setStats(s => ({ ...s, topWord: top[0] }))
+      })
+  }, [])
 
   const saveBingoSession = async (sel, currentBoard) => {
     if (!user || savedRef.current) return
@@ -209,7 +237,10 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
 
           {/* Feature cards */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-surface-container-low p-5 rounded-2xl flex flex-col justify-between h-36">
+            <div
+              className="bg-surface-container-low p-5 rounded-2xl flex flex-col justify-between h-36 cursor-pointer active:scale-95 transition-transform"
+              onClick={() => onNavigate('community')}
+            >
               <span className="material-symbols-outlined text-secondary text-3xl">groups</span>
               <div>
                 <h3 className="font-headline font-bold text-base leading-tight">Közösségi Játék</h3>
@@ -220,7 +251,17 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
               <span className="material-symbols-outlined text-primary text-3xl">trending_up</span>
               <div>
                 <h3 className="font-headline font-bold text-base leading-tight">Napi Statisztika</h3>
-                <p className="text-xs text-on-surface-variant mt-1">Friss hívószavak</p>
+                <div className="flex gap-3 mt-1">
+                  <span className="text-xs text-on-surface-variant">
+                    <span className="font-bold text-on-surface">{stats.bingos}</span> bingó ma
+                  </span>
+                  <span className="text-xs text-on-surface-variant">
+                    <span className="font-bold text-on-surface">{stats.players}</span> játékos
+                  </span>
+                </div>
+                {stats.topWord !== '—' && (
+                  <p className="text-xs text-primary font-bold mt-0.5 truncate">🔥 {stats.topWord}</p>
+                )}
               </div>
             </div>
           </div>
