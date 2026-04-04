@@ -45,6 +45,7 @@ function useCountdown() {
 
 export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileClick }) {
   const [phase, setPhase] = useState('welcome')
+  const [showAllWords, setShowAllWords] = useState(false)
   const [board, setBoard] = useState([])
   const [selected, setSelected] = useState(new Set([CENTER]))
   const [winCells, setWinCells] = useState(new Set())
@@ -107,6 +108,7 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
     setIsBingo(false)
     savedRef.current = false
     setPhase('game')
+    if (typeof window !== 'undefined' && window.umami) window.umami.track('game_started')
   }, [])
 
   const newBoard = useCallback(() => {
@@ -130,6 +132,7 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
       launchConfetti()
       if (s.sounds) playSound('bingo')
       if (s.haptic) vibrate([100, 50, 100, 50, 200])
+      if (typeof window !== 'undefined' && window.umami) window.umami.track('bingo_achieved', { count: next.size - 1 })
       setTotalBingos(n => n + 1)
       saveBingoSession(next, board)
     }
@@ -139,6 +142,7 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
   }
 
   const handleShare = async () => {
+    if (typeof window !== 'undefined' && window.umami) window.umami.track('share_clicked', { isBingo })
     const count = selected.size - 1
     const url = 'https://valasztasibingo.hu'
     const words = Array.from(selected)
@@ -317,18 +321,36 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
             </div>
           </div>
 
-          {/* Buzzword chips preview */}
+          {/* Varázsszavak */}
           <div className="bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant/20">
-            <p className="text-xs font-headline font-bold uppercase tracking-widest text-on-surface-variant mb-3">Néhány varázsszó</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-headline font-bold uppercase tracking-widest text-on-surface-variant">
+                {showAllWords ? 'Összes varázsszó' : 'Néhány varázsszó'}
+              </p>
+              <span className="text-xs text-on-surface-variant font-body">{BUZZWORDS.length} szó</span>
+            </div>
             <div className="flex flex-wrap gap-2">
-              {["Brüsszel", "Szuverenitás", "Migráció", "Béke", "Gyurcsány", "Rezsi", "Stabilitás", "Előre megyünk"].map(w => (
+              {(showAllWords ? BUZZWORDS : BUZZWORDS.slice(0, 8)).map(w => (
                 <span key={w} className="text-xs bg-surface-container text-on-surface-variant px-3 py-1 rounded-full font-body font-medium border border-outline-variant/30">
                   {w}
                 </span>
               ))}
-              <span className="text-xs bg-primary-fixed text-on-primary-fixed-variant px-3 py-1 rounded-full font-body font-medium">
-                +26 más...
-              </span>
+              {!showAllWords && (
+                <button
+                  onClick={() => setShowAllWords(true)}
+                  className="text-xs bg-primary-fixed text-on-primary-fixed-variant px-3 py-1 rounded-full font-body font-medium active:scale-95 transition-transform"
+                >
+                  +{BUZZWORDS.length - 8} más...
+                </button>
+              )}
+              {showAllWords && (
+                <button
+                  onClick={() => setShowAllWords(false)}
+                  className="text-xs bg-surface-container-high text-on-surface-variant px-3 py-1 rounded-full font-body font-medium active:scale-95 transition-transform"
+                >
+                  Kevesebb ↑
+                </button>
+              )}
             </div>
           </div>
 
