@@ -3,7 +3,7 @@ import { supabase } from './supabase'
 export const signInWithGoogle = () =>
   supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin }
+    options: { redirectTo: 'https://valasztasibingo.hu' }
   })
 
 export const signInAnonymously = () =>
@@ -15,7 +15,7 @@ export const signInWithFacebook = () =>
   supabase.auth.signInWithOAuth({
     provider: 'facebook',
     options: {
-      redirectTo: window.location.origin,
-      scopes: 'email,public_profile',
+      redirectTo: 'https://valasztasibingo.hu',
+      scopes: 'public_profile',
     }
   })
