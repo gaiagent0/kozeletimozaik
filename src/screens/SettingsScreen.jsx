@@ -30,7 +30,7 @@ function SettingRow({ icon, iconBg, title, subtitle, right }) {
   )
 }
 
-export default function SettingsScreen({ user, loading, onNavigate, onMenuClick, onProfileClick }) {
+export default function SettingsScreen({ user, loading, onNavigate, onMenuClick, onProfileClick, leftIcon = 'menu' }) {
   const [settings, setSettings] = useState(getSettings())
   const [profile, setProfile] = useState(null)
   const [authBusy, setAuthBusy] = useState(false)
@@ -70,7 +70,7 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <TopBar title="Beállítások" rightIcon="more_vert" onLeftClick={onMenuClick} onRightClick={onProfileClick} />
+      <TopBar title="Beállítások" leftIcon={leftIcon} rightIcon="more_vert" onLeftClick={onMenuClick} onRightClick={onProfileClick} />
       <main className="flex-1 px-5 pt-6 pb-32 max-w-2xl mx-auto w-full space-y-8 slide-up">
 
         {/* Profile card */}

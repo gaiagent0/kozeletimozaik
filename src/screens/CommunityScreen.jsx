@@ -29,7 +29,7 @@ function relativeTime(iso) {
   return `${Math.floor(diff / 86400)} napja`
 }
 
-export default function CommunityScreen({ user, onNavigate, onMenuClick, onProfileClick }) {
+export default function CommunityScreen({ user, onNavigate, onMenuClick, onProfileClick, leftIcon = 'menu' }) {
   const [leaders, setLeaders] = useState(null)
   const [activity, setActivity] = useState([])
   const [toast, setToast] = useState(null)
@@ -109,7 +109,7 @@ export default function CommunityScreen({ user, onNavigate, onMenuClick, onProfi
 
   return (
     <div className="flex flex-col min-h-screen bg-background tapestry-bg">
-      <TopBar title="Választási Bingó 2026" onLeftClick={onMenuClick} onRightClick={onProfileClick} />
+      <TopBar title="Választási Bingó 2026" leftIcon={leftIcon} onLeftClick={onMenuClick} onRightClick={onProfileClick} />
       <main className="flex-1 px-5 pt-6 pb-32 max-w-2xl mx-auto w-full space-y-8 slide-up">
 
         {/* Header */}

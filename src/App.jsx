@@ -24,11 +24,54 @@ export default function App() {
 
   const renderScreen = () => {
     switch (activeTab) {
-      case 'bingo':     return <BingoScreen user={user} onNavigate={setActiveTab} onMenuClick={goToBingo} onProfileClick={goToSettings} />
-      case 'community': return <CommunityScreen user={user} onNavigate={setActiveTab} onMenuClick={goToBingo} onProfileClick={goToSettings} />
-      case 'news':      return <NewsScreen onNavigate={setActiveTab} onMenuClick={goToBingo} onProfileClick={goToSettings} />
-      case 'settings':  return <SettingsScreen user={user} loading={loading} onNavigate={setActiveTab} onMenuClick={goToBingo} onProfileClick={openSettingsMenu} />
-      default:          return <BingoScreen user={user} onNavigate={setActiveTab} onMenuClick={goToBingo} onProfileClick={goToSettings} />
+      case 'bingo':
+        return (
+          <BingoScreen
+            user={user}
+            onNavigate={setActiveTab}
+            onMenuClick={null}
+            onProfileClick={goToSettings}
+          />
+        )
+      case 'community':
+        return (
+          <CommunityScreen
+            user={user}
+            onNavigate={setActiveTab}
+            onMenuClick={goToBingo}
+            onProfileClick={goToSettings}
+            leftIcon="home"
+          />
+        )
+      case 'news':
+        return (
+          <NewsScreen
+            onNavigate={setActiveTab}
+            onMenuClick={goToBingo}
+            onProfileClick={goToSettings}
+            leftIcon="home"
+          />
+        )
+      case 'settings':
+        return (
+          <SettingsScreen
+            user={user}
+            loading={loading}
+            onNavigate={setActiveTab}
+            onMenuClick={goToBingo}
+            onProfileClick={openSettingsMenu}
+            leftIcon="home"
+          />
+        )
+      default:
+        return (
+          <BingoScreen
+            user={user}
+            onNavigate={setActiveTab}
+            onMenuClick={null}
+            onProfileClick={goToSettings}
+          />
+        )
     }
   }
 

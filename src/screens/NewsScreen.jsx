@@ -14,7 +14,7 @@ function timeAgo(iso) {
   return `${Math.floor(h / 24)} napja`
 }
 
-export default function NewsScreen({ onNavigate, onMenuClick, onProfileClick }) {
+export default function NewsScreen({ onNavigate, onMenuClick, onProfileClick, leftIcon = 'menu' }) {
   const [articles, setArticles] = useState(null) // null = loading
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function NewsScreen({ onNavigate, onMenuClick, onProfileClick }) 
 
   return (
     <div className="flex flex-col min-h-screen bg-surface">
-      <TopBar title="Választási Bingó 2026" rightIcon="filter_list" onLeftClick={onMenuClick} onRightClick={onProfileClick} />
+      <TopBar title="Választási Bingó 2026" leftIcon={leftIcon} rightIcon="filter_list" onLeftClick={onMenuClick} onRightClick={onProfileClick} />
       <main className="flex-1 px-5 pt-6 pb-32 max-w-2xl mx-auto w-full slide-up">
 
         {/* Editorial header */}
