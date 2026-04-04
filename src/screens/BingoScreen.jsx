@@ -43,6 +43,23 @@ function useCountdown() {
   return display
 }
 
+function wrapText(ctx, text, maxWidth) {
+  const words = text.split(' ')
+  const lines = []
+  let current = ''
+  for (const word of words) {
+    const test = current ? current + ' ' + word : word
+    if (ctx.measureText(test).width > maxWidth && current) {
+      lines.push(current)
+      current = word
+    } else {
+      current = test
+    }
+  }
+  if (current) lines.push(current)
+  return lines.slice(0, 3)
+}
+
 export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileClick }) {
   const [phase, setPhase] = useState('welcome')
   const [showAllWords, setShowAllWords] = useState(false)
@@ -143,106 +160,130 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
 
   const handleShare = async () => {
     if (typeof window !== 'undefined' && window.umami) window.umami.track('share_clicked', { isBingo })
+
     const count = selected.size - 1
     const url = 'https://valasztasibingo.hu'
-    const words = Array.from(selected)
-      .filter(i => i !== CENTER)
-      .map(i => board[i])
-      .slice(0, 3)
+    const words = Array.from(selected).filter(i => i !== CENTER).map(i => board[i]).slice(0, 3)
 
     const shareTexts = {
       bingo: [
-        `🇭🇺 BINGÓ! Kiszúrtam ${count} politikai varázsszót a mai közvetítésen!\n"${words.join('", "')}" – és még több.\n🗳️ Te is játszol? → ${url}\n#ValasztasiBingo #valasztas2026`,
-        `🎯 BINGÓ! ${count} mezőm van – köztük: "${words[0]}"!\nHallgatod te is a kampánybeszédeket? Játssz velem!\n→ ${url}\n#bingo2026 #valasztas2026`,
-        `🏆 Megcsináltam! ${count}/24 mező – BINGÓ!\nA magyar politika legjobb italbulija… ital nélkül.\n→ ${url} #ValasztasiBingo`,
+        `🇭🇺 BINGÓ! Kiszúrtam ${count} politikai varázsszót!\n"${words.join('", "')}" – és még több.\n🗳️ Játssz te is! → ${url}\n#ValasztasiBingo #valasztas2026`,
+        `🎯 BINGÓ! ${count} mezőm van – köztük: "${words[0]}"!\nHallgatod a kampánybeszédeket? Játssz velem!\n→ ${url}\n#bingo2026 #valasztas2026`,
+        `🏆 Megcsináltam! ${count}/24 mező – BINGÓ!\nA magyar politika legjobb játéka.\n→ ${url} #ValasztasiBingo`,
       ],
       playing: [
-        `🗳️ ${count}/24 mezőnél tartok a Választási Bingón!\nMár hallottam: "${words[0] || 'Brüsszel'}"... Ki tudja hány lesz még?\n→ ${url}\n#valasztas2026 #bingo2026`,
-        `🎮 Élőben játszom a Választási Bingót – ${count} szó eddig!\nTe is próbáld ki a választási kampány közvetítése alatt!\n→ ${url}`,
-        `📻 Hallgatom Orbánt / Magyar Pétert és bingózok 🎯\n${count}/24 eddig, ki tudja mi hangzik el még!\n→ ${url} #ValasztasiBingo`,
+        `🗳️ ${count}/24 mezőnél tartok a Választási Bingón!\nMár hallottam: "${words[0] || 'Brüsszel'}"...\n→ ${url}\n#valasztas2026 #bingo2026`,
+        `🎮 Élőben játszom a Választási Bingót – ${count} szó eddig!\nPróbáld ki te is!\n→ ${url}`,
+        `📻 Hallgatom a kampányt és bingózok 🎯\n${count}/24 – ki tudja mi hangzik el még!\n→ ${url} #ValasztasiBingo`,
       ]
     }
     const textPool = isBingo ? shareTexts.bingo : shareTexts.playing
     const shareText = textPool[Math.floor(Math.random() * textPool.length)]
 
-    try {
-      const { default: html2canvas } = await import('html2canvas')
-      const grid = document.getElementById('bingo-grid')
+    // === CANVAS ALAPÚ GRID RAJZOLÁS ===
+    const COLS = 5
+    const CELL = 110
+    const GAP = 6
+    const PAD = 16
+    const HEADER = 90
+    const OUTER_PAD = 20
 
-      const gridCanvas = await html2canvas(grid, {
-        backgroundColor: null,
-        scale: 2,
-        logging: false,
-        useCORS: true,
-      })
+    const gridW = COLS * CELL + (COLS - 1) * GAP + PAD * 2
+    const gridH = COLS * CELL + (COLS - 1) * GAP + PAD * 2
+    const totalW = gridW + OUTER_PAD * 2
+    const totalH = HEADER + gridH + 70 + OUTER_PAD * 2
 
-      const W = gridCanvas.width
-      const headerH = 80
-      const footerH = 70
-      const padding = 24
-      const totalH = headerH + gridCanvas.height + footerH + padding * 2
+    const canvas = document.createElement('canvas')
+    canvas.width = totalW
+    canvas.height = totalH
+    const ctx = canvas.getContext('2d')
 
-      const branded = document.createElement('canvas')
-      branded.width = W + padding * 2
-      branded.height = totalH
-      const ctx = branded.getContext('2d')
+    // 1. Háttér
+    ctx.fillStyle = '#f5f0eb'
+    ctx.fillRect(0, 0, totalW, totalH)
 
-      ctx.fillStyle = '#fbf9f6'
-      ctx.fillRect(0, 0, branded.width, branded.height)
+    // 2. Magyar trikolór csík
+    const S = 7
+    ctx.fillStyle = '#CE2939'; ctx.fillRect(0, 0, totalW, S)
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, S, totalW, S)
+    ctx.fillStyle = '#477050'; ctx.fillRect(0, S * 2, totalW, S)
 
-      const stripeH = 8
-      ctx.fillStyle = '#CE2939'; ctx.fillRect(0, 0, branded.width, stripeH)
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, stripeH, branded.width, stripeH)
-      ctx.fillStyle = '#477050'; ctx.fillRect(0, stripeH * 2, branded.width, stripeH)
+    // 3. Fejléc
+    ctx.fillStyle = '#aa0424'
+    ctx.font = 'bold 22px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('VÁLASZTÁSI BINGÓ 2026', totalW / 2, S * 3 + 30)
+    ctx.font = '14px sans-serif'
+    ctx.fillStyle = '#888'
+    ctx.fillText('valasztasibingo.hu', totalW / 2, S * 3 + 52)
 
-      ctx.fillStyle = '#aa0424'
-      ctx.font = 'bold 28px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText('🗳️ VÁLASZTÁSI BINGÓ 2026', branded.width / 2, stripeH * 3 + 44)
+    // 4. Grid háttér
+    const gx = OUTER_PAD
+    const gy = HEADER
+    ctx.fillStyle = '#e8e4e0'
+    ctx.beginPath()
+    ctx.roundRect(gx, gy, gridW, gridH, 16)
+    ctx.fill()
 
-      ctx.drawImage(gridCanvas, padding, headerH)
+    // 5. Cellák
+    board.forEach((word, i) => {
+      const col = i % COLS
+      const row = Math.floor(i / COLS)
+      const cx = gx + PAD + col * (CELL + GAP)
+      const cy = gy + PAD + row * (CELL + GAP)
+      const isCenter = i === CENTER
+      const isWin = winCells.has(i)
+      const isSel = selected.has(i)
 
-      const resultY = headerH + gridCanvas.height + 20
-      ctx.fillStyle = isBingo ? '#aa0424' : '#555'
-      ctx.font = `bold ${isBingo ? 26 : 20}px sans-serif`
-      ctx.textAlign = 'center'
-      ctx.fillText(
-        isBingo ? `🏆 BINGÓ! ${count}/24 mező` : `${count}/24 mező megjelölve`,
-        branded.width / 2,
-        resultY
-      )
+      ctx.fillStyle = isCenter ? 'rgba(170,4,36,0.10)' : isWin ? '#aa0424' : isSel ? '#c0eec6' : '#ffffff'
+      ctx.beginPath()
+      ctx.roundRect(cx, cy, CELL, CELL, 10)
+      ctx.fill()
 
-      ctx.fillStyle = '#888'
-      ctx.font = '18px sans-serif'
-      ctx.fillText('valasztasibingo.hu', branded.width / 2, resultY + 30)
+      if (isCenter) {
+        ctx.fillStyle = '#aa0424'
+        ctx.font = 'bold 13px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.fillText('FREE', cx + CELL / 2, cy + CELL / 2 + 5)
+      } else {
+        ctx.fillStyle = isWin ? '#ffffff' : isSel ? '#2d5a35' : '#1b1c1a'
+        ctx.textAlign = 'center'
+        const fontSize = 11
+        ctx.font = `${isWin ? 'bold ' : ''}${fontSize}px sans-serif`
+        const lines = wrapText(ctx, word, CELL - 12)
+        const lineH = fontSize + 3
+        const startY = cy + CELL / 2 - ((lines.length - 1) * lineH) / 2
+        lines.forEach((line, li) => ctx.fillText(line, cx + CELL / 2, startY + li * lineH))
+      }
+    })
 
-      branded.toBlob(async (blob) => {
-        const file = new File([blob], 'valasztasi-bingo-2026.png', { type: 'image/png' })
+    // 6. Lábléc
+    const footerY = HEADER + gridH + OUTER_PAD + 16
+    ctx.fillStyle = isBingo ? '#aa0424' : '#555'
+    ctx.font = `bold ${isBingo ? 20 : 16}px sans-serif`
+    ctx.textAlign = 'center'
+    ctx.fillText(isBingo ? `🏆 BINGÓ! ${count}/24 mező` : `${count}/24 mező megjelölve`, totalW / 2, footerY)
+    ctx.fillStyle = '#999'
+    ctx.font = '13px sans-serif'
+    ctx.fillText('#ValasztasiBingo #valasztas2026', totalW / 2, footerY + 22)
 
-        if (navigator.share && navigator.canShare({ files: [file] })) {
-          await navigator.share({ title: 'Választási Bingó 2026', text: shareText, files: [file] })
-          return
-        }
-
-        const a = document.createElement('a')
-        a.href = URL.createObjectURL(blob)
-        a.download = 'valasztasi-bingo-2026.png'
-        a.click()
-        URL.revokeObjectURL(a.href)
-
-        await navigator.clipboard?.writeText(shareText).catch(() => {})
-        setCopied(true)
-        setTimeout(() => setCopied(false), 4000)
-        setShareMsg('📥 Kép letöltve + szöveg másolva! Illeszd be közösségi médiába.')
-        setTimeout(() => setShareMsg(''), 5000)
-      }, 'image/png')
-
-    } catch (err) {
-      console.error('Share error:', err)
+    // 7. Export
+    canvas.toBlob(async (blob) => {
+      const file = new File([blob], 'valasztasi-bingo-2026.png', { type: 'image/png' })
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({ title: 'Választási Bingó 2026', text: shareText, files: [file] })
+        return
+      }
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = 'valasztasi-bingo-2026.png'
+      a.click()
+      URL.revokeObjectURL(a.href)
       await navigator.clipboard?.writeText(shareText).catch(() => {})
       setCopied(true)
-      setTimeout(() => setCopied(false), 4000)
-    }
+      setShareMsg('📥 Kép letöltve + szöveg másolva! Illeszd be közösségi médiába.')
+      setTimeout(() => { setCopied(false); setShareMsg('') }, 5000)
+    }, 'image/png')
   }
 
   if (phase === 'welcome') {
