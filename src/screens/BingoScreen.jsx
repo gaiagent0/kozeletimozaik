@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import TopBar from '../components/TopBar.jsx'
+import LegalFooter from '../components/LegalFooter.jsx'
 import { BUZZWORDS } from '../lib/data.js'
 import { SIZE, CENTER, makeBoard, checkWin, launchConfetti } from '../lib/bingo.js'
 import { supabase } from '../lib/supabase.js'
@@ -310,6 +311,7 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
             Játék Indítása
             <span className="material-symbols-outlined">play_arrow</span>
           </button>
+          <LegalFooter />
         </main>
       </div>
     )
@@ -470,7 +472,7 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
             <p className="text-xs text-on-surface-variant line-clamp-1 mt-0.5">A részletek már elérhetők a hivatalos oldalakon...</p>
           </div>
         </div>
-
+        <LegalFooter />
       </main>
     </div>
   )

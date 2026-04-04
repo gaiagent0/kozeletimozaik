@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import TopBar from '../components/TopBar.jsx'
+import LegalFooter from '../components/LegalFooter.jsx'
 import { LEADERBOARD as FALLBACK } from '../lib/data.js'
 import { supabase } from '../lib/supabase.js'
 import { useDailyChallenge } from '../hooks/useDailyChallenge.js'
@@ -351,7 +352,7 @@ export default function CommunityScreen({ user, onNavigate, onMenuClick, onProfi
             )}
           </div>
         </section>
-
+        <LegalFooter />
       </main>
 
       {/* Toast */}

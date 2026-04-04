@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import TopBar from '../components/TopBar.jsx'
+import LegalFooter from '../components/LegalFooter.jsx'
 import { NEWS as FALLBACK_NEWS } from '../lib/data.js'
 
 const DOT_COLORS = ['bg-primary', 'bg-secondary', 'bg-outline', 'bg-primary', 'bg-secondary']
@@ -129,7 +130,7 @@ export default function NewsScreen({ onNavigate, onMenuClick, onProfileClick, le
             ))
           )}
         </div>
-
+        <LegalFooter />
       </main>
     </div>
   )
