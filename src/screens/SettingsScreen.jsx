@@ -159,6 +159,20 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
                 className="w-full py-3 text-on-surface-variant font-headline font-bold text-sm active:scale-95 transition-transform disabled:opacity-60">
                 Folytatás vendégként
               </button>
+
+              <div className="text-center mt-2 space-y-1">
+                <p className="text-[10px] text-on-surface-variant uppercase tracking-widest font-headline font-bold opacity-40">
+                  Választási Bingó 2026 v2.0.0
+                </p>
+                <a
+                  href="https://gaiagent.cc/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-[10px] text-on-surface-variant font-body opacity-40 hover:opacity-70 transition-opacity"
+                >
+                  © 2026 Gai Agent TechServices · gaiagent.cc
+                </a>
+              </div>
             </div>
           )}
         </section>
@@ -203,9 +217,19 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
               <span className="material-symbols-outlined">logout</span>
               {authBusy ? 'Kijelentkezés…' : 'Kijelentkezés'}
             </button>
-            <p className="text-center text-[10px] text-on-surface-variant mt-6 uppercase tracking-widest font-headline font-bold opacity-40">
-              Választási Bingó 2026 v2.0.0
-            </p>
+            <div className="text-center mt-6 space-y-1">
+              <p className="text-[10px] text-on-surface-variant uppercase tracking-widest font-headline font-bold opacity-40">
+                Választási Bingó 2026 v2.0.0
+              </p>
+              <a
+                href="https://gaiagent.cc/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-[10px] text-on-surface-variant font-body opacity-40 hover:opacity-70 transition-opacity"
+              >
+                © 2026 Gai Agent TechServices · gaiagent.cc
+              </a>
+            </div>
           </div>
         )}
 

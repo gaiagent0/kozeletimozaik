@@ -281,6 +281,27 @@ export default function BingoScreen({ user, onNavigate, onMenuClick, onProfileCl
             </div>
           </div>
 
+          {/* Játék leírás */}
+          <div className="bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant/20 space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>info</span>
+              <h3 className="font-headline font-bold text-base text-on-surface">Hogyan játssz?</h3>
+            </div>
+            <ol className="space-y-2">
+              {[
+                { n: '1', text: 'Indíts el egy bingó táblát és hallgasd a közvetítést vagy kampánybeszédet.' },
+                { n: '2', text: 'Ha elhangzik egy szó a táblán, kattints rá – a cella megjelölődik.' },
+                { n: '3', text: 'Ha egy teljes sort, oszlopot vagy átlót bejelöltél: BINGÓ!' },
+                { n: '4', text: 'Oszd meg az eredményed és versenyezz a közösséggel a ranglistán.' },
+              ].map(item => (
+                <li key={item.n} className="flex gap-3 items-start">
+                  <span className="w-5 h-5 rounded-full bg-primary text-on-primary text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">{item.n}</span>
+                  <p className="text-sm font-body text-on-surface-variant leading-snug">{item.text}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+
           {/* CTA */}
           <button
             onClick={startGame}
