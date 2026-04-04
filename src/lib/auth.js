@@ -16,6 +16,5 @@ export const signInWithFacebook = () =>
     provider: 'facebook',
     options: {
       redirectTo: 'https://valasztasibingo.hu',
-      scopes: 'public_profile',
     }
   })
