@@ -83,7 +83,7 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
   const handleFacebookLogin = async () => {
     setAuthBusy(true)
     const { error } = await signInWithFacebook()
-    if (error) showToast('Facebook bejelentkezés hamarosan! 🔜')
+    if (error) showToast('⚠️ Facebook hiba: ' + error.message)
     setAuthBusy(false)
   }
 
@@ -200,6 +200,8 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
                 <h2 className="font-headline font-bold text-xl text-on-surface">Csatlakozz a közösséghez!</h2>
                 <p className="text-on-surface-variant text-sm mt-2">Jelentkezz be, hogy pontjaid megjelenjenek a toplistán.</p>
               </div>
+
+              {/* Google */}
               <button onClick={handleGoogleLogin} disabled={authBusy}
                 className="w-full flex items-center justify-center gap-3 py-3.5 bg-surface-container border border-outline-variant rounded-2xl font-headline font-bold text-sm active:scale-95 transition-transform disabled:opacity-60">
                 <svg width="18" height="18" viewBox="0 0 48 48">
@@ -210,6 +212,7 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
                 </svg>
                 Bejelentkezés Google-lel
               </button>
+
               {/* Elválasztó */}
               <div className="flex items-center gap-3 w-full">
                 <div className="flex-1 h-px bg-outline-variant/40" />
@@ -217,15 +220,16 @@ export default function SettingsScreen({ user, loading, onNavigate, onMenuClick,
                 <div className="flex-1 h-px bg-outline-variant/40" />
               </div>
 
-              {/* Facebook – Hamarosan */}
+              {/* Facebook – AKTÍV */}
               <button
-                disabled
-                className="w-full flex items-center justify-center gap-3 py-3.5 bg-[#1877F2]/40 text-white/60 rounded-2xl font-headline font-bold text-sm cursor-not-allowed"
+                onClick={handleFacebookLogin}
+                disabled={authBusy}
+                className="w-full flex items-center justify-center gap-3 py-3.5 bg-[#1877F2] text-white rounded-2xl font-headline font-bold text-sm active:scale-95 transition-transform disabled:opacity-60"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="white" opacity="0.6">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                 </svg>
-                Facebook – Hamarosan
+                {authBusy ? 'Átirányítás…' : 'Bejelentkezés Facebook-kal'}
               </button>
 
               {/* TikTok + Instagram – hamarosan */}
