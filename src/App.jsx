@@ -4,6 +4,7 @@ import BingoScreen from './screens/BingoScreen.jsx'
 import CommunityScreen from './screens/CommunityScreen.jsx'
 import NewsScreen from './screens/NewsScreen.jsx'
 import SettingsScreen from './screens/SettingsScreen.jsx'
+import AdminScreen from './screens/AdminScreen.jsx'
 import { useAuth } from './hooks/useAuth.js'
 
 export default function App() {
@@ -63,6 +64,14 @@ export default function App() {
             leftIcon="home"
           />
         )
+      // Admin – rejtett útvonal, URL-ben: ?admin=1 vagy navigációból
+      case 'admin':
+        return (
+          <AdminScreen
+            user={user}
+            onMenuClick={goToBingo}
+          />
+        )
       default:
         return (
           <BingoScreen
@@ -79,6 +88,15 @@ export default function App() {
     <div className="relative min-h-screen bg-background font-body">
       {renderScreen()}
       <BottomNav active={activeTab} onNavigate={setActiveTab} />
+      {/* Admin gyorsgomb – csak bejelentkezett admin látja */}
+      {user?.email === 'szechist@gmail.com' && activeTab !== 'admin' && (
+        <button
+          onClick={() => setActiveTab('admin')}
+          className="fixed top-4 left-4 z-50 bg-primary text-on-primary text-[10px] font-headline font-bold px-3 py-1.5 rounded-full shadow-lg opacity-70 active:opacity-100"
+        >
+          ⚙️ Admin
+        </button>
+      )}
     </div>
   )
 }

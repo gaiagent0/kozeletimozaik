@@ -1,3 +1,4 @@
+// Statikus varázsszavak – ezek mindig megjelennek a táblán
 export const BUZZWORDS = [
   "Brüsszel", "Szuverenitás", "Soros-terv", "Megállítjuk", "Dollárbaloldal",
   "Béke", "Migráció", "Rezsi-csökkentés", "Gyurcsány", "Folytatjuk",
