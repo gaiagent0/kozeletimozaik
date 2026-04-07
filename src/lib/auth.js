@@ -11,10 +11,13 @@ export const signInAnonymously = () =>
 
 export const signOut = () => supabase.auth.signOut()
 
+// Csak public_profile-t kérünk – nem kell App Review az email permissionhöz
+// A Supabase "Allow users without email" be van kapcsolva, így ez működik
 export const signInWithFacebook = () =>
   supabase.auth.signInWithOAuth({
     provider: 'facebook',
     options: {
       redirectTo: 'https://valasztasibingo.hu',
+      scopes: 'public_profile',
     }
   })
